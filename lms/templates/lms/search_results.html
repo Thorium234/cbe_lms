@@ -1,0 +1,59 @@
+{% extends 'lms/base.html' %}
+
+{% block content %}
+  <div class="container">
+    <h1>Search Results for "{{ query }}"</h1>
+    {% if results.resources or results.subjects or results.grades or results.education_levels %}
+      {% if results.education_levels %}
+        <h2>Education Levels</h2>
+        <ul>
+          {% for el in results.education_levels %}
+            <li><a href="{{ el.url }}">{{ el.name }}</a>: {{ el.description }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if results.grades %}
+        <h2>Grades</h2>
+        <ul>
+          {% for grade in results.grades %}
+            <li><a href="{{ grade.url }}">{{ grade.name }}</a>: {{ grade.description }} ({{ grade.education_level }})</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if results.subjects %}
+        <h2>Subjects</h2>
+        <ul>
+          {% for subject in results.subjects %}
+            <li><a href="{{ subject.url }}">{{ subject.name }}</a>: {{ subject.description }} (Grades: {{ subject.grades|join:", " }})</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if results.resources %}
+        <h2>Resources</h2>
+        <ul>
+          {% for resource in results.resources %}
+            <li>
+              <a href="/lms/view/{{ resource.id }}/">{{ resource.title }}</a> 
+              ({{ resource.type }}, {{ resource.subject }}, {{ resource.grade }}) 
+              by {{ resource.uploaded_by }} on {{ resource.upload_date }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% else %}
+      <p>No results found for "{{ query }}".</p>
+    {% endif %}
+    <form method="get" action="{% url 'lms:search' %}">
+      <input type="text" name="q" value="{{ query }}" placeholder="Search again...">
+      <select name="type">
+        <option value="">All Types</option>
+        {% for rt in all_resource_types %}
+          <option value="{{ rt.id }}" {% if rt.id|stringformat:"s" == resource_type %}selected{% endif %}>
+            {{ rt.name }}
+          </option>
+        {% endfor %}
+      </select>
+      <button type="submit">Search</button>
+    </form>
+  </div>
+{% endblock %}

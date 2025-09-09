@@ -1,0 +1,114 @@
+
+{% extends 'lms/base.html' %}
+{% block title %}Loading...{% endblock %}
+
+{% block content %}
+ Fullscreen Overlay
+<div class="fixed inset-0 flex items-center justify-center z-[1050] bg-black bg-opacity-50">
+    <div class="bg-white bg-opacity-10 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-white border-opacity-20">
+        <div class="text-center">
+             Typing Title
+            <h2 id="typing-title" class="text-2xl md:text-3xl font-bold text-white mb-6 font-mono tracking-tight"></h2>
+
+             Kenyan Flag Spinner
+            <div class="kenyan-spinner mx-auto mb-6" role="status" aria-label="Loading...">
+                <span class="sr-only">Loading...</span>
+            </div>
+
+             Dynamic Loading Message
+            <h5 id="loading-msg" class="text-lg font-semibold text-white mb-2 tracking-wide"></h5>
+            <p id="sub-message" class="text-sm text-gray-200 opacity-80"></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+// Typing title animation
+const titleText = "Curriculum Based Education E-Library";
+let i = 0;
+function typeWriter() {
+    if (i < titleText.length) {
+        document.getElementById("typing-title").innerHTML += titleText.charAt(i);
+        i++;
+        setTimeout(typeWriter, 80);
+    }
+}
+typeWriter();
+
+// Loading messages cycling
+const loadingMessages = [
+    "Processing your request",
+    "Preparing your content",
+    "Almost ready",
+    "Finalizing now"
+];
+let msgIndex = 0, dotCount = 0;
+setInterval(() => {
+    msgIndex = (msgIndex + 1) % loadingMessages.length;
+    dotCount = (dotCount + 1) % 4;
+    document.getElementById("loading-msg").innerText = loadingMessages[msgIndex] + '.'.repeat(dotCount);
+}, 1200);
+
+// Random sub-message
+const subMessages = [
+    "Fetching the latest educational resources...",
+    "Thank you for your patience.",
+    "Ensuring a seamless experience...",
+    "Loading CBC curriculum content...",
+    "Empowering education with CBC LMS"
+];
+document.getElementById("sub-message").innerText = subMessages[Math.floor(Math.random() * subMessages.length)];
+
+// Redirect to homepage
+const redirectUrl = "{% url 'lms:grade_level_dashboard' %}";
+setTimeout(() => {
+    window.location.href = redirectUrl;
+}, 3000);
+</script>
+
+<style>
+/* Glassmorphic overlay */
+.fixed.inset-0 {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Kenyan flag spinner */
+.kenyan-spinner {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 6px solid transparent;
+    border-top-color: #EF4444; /* Red */
+    border-right-color: #15803D; /* Green */
+    border-bottom-color: #F5F5F5; /* White */
+    border-left-color: #000000; /* Black */
+    animation: spin 1.2s linear infinite, pulse 1.5s ease-in-out infinite;
+    position: relative;
+}
+
+/* Animations */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Screen reader only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+</style>
+{% endblock %}

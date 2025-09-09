@@ -1,0 +1,130 @@
+<!-- lms/templates/lms/category_dashboard.html -->
+{% extends 'lms/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+        <div>
+            <div class="flex items-center mb-2">
+                <a href="{% url 'lms:grade_dashboard' grade_id=grade.id %}" class="mr-2 text-green-600 hover:text-green-700">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mr-3">
+                    {{ grade.name }}
+                </span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                    <i class="{{ category.icon }} mr-2"></i>
+                    {{ category.name }}
+                </span>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800">{{ category.name }} Subjects</h1>
+            <p class="text-gray-600 mt-1">Browse subjects in {{ category.name }} for {{ grade.name }}</p>
+        </div>
+        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+            <a href="{% url 'lms:grade_dashboard' grade_id=grade.id %}" class="inline-flex items-center text-green-600 hover:text-green-700 hover:underline transition-colors duration-200">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Grade
+            </a>
+        </div>
+    </div>
+    
+    <!-- Subjects in Category -->
+    {% if subjects %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for subject in subjects %}
+        <a href="{% url 'lms:subject_dashboard' grade_id=grade.id subject_id=subject.id %}" class="block transform transition-all duration-300 hover:scale-105 group">
+            <div class="bg-white p-6 rounded-xl shadow-md hover:shadow-xl border border-gray-100 h-full transition-all duration-300 group-hover:border-green-200">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:from-purple-500 group-hover:to-purple-600 transition-colors duration-300">
+                        <i class="{{ subject.category.icon }} text-white text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-semibold text-gray-800 group-hover:text-green-700 transition-colors duration-200">{{ subject.name }}</h3>
+                        <div class="flex items-center mt-1">
+                            <span class="text-xs text-gray-500">
+                                {% with subject.grades.all as subject_grades %}
+                                    {% for grade in subject_grades %}
+                                        {{ grade.name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                {% endwith %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% if subject.description %}
+                <p class="text-gray-600 text-sm">{{ subject.description }}</p>
+                {% else %}
+                <p class="text-gray-500 text-sm">No description available for this subject.</p>
+                {% endif %}
+                
+                <!-- Subject Stats -->
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>Resources: {{ subject.resources.filter(is_active=True).count }}</span>
+                        <span>Grades: {{ subject.grades.count }}</span>
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-8 text-center">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
+            <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-medium text-yellow-800 mb-2">No subjects available</h3>
+        <p class="text-yellow-700 mb-4">There are no subjects in {{ category.name }} for {{ grade.name }} yet.</p>
+        {% if user.is_staff %}
+            <p class="text-yellow-600 text-sm">As an administrator, you can add subjects in the admin dashboard.</p>
+            <a href="{% url 'lms:superuser_dashboard' %}" class="inline-flex items-center mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                <i class="fas fa-cogs mr-2"></i> Go to Admin Dashboard
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Category Information -->
+    {% if category.description %}
+    <div class="mt-8 bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+            <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+            About {{ category.name }}
+        </h3>
+        <p class="text-gray-600 leading-relaxed">{{ category.description }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+// Add smooth hover effects and animations
+document.addEventListener('DOMContentLoaded', function() {
+    // Add animation to subjects on page load
+    const subjects = document.querySelectorAll('.group');
+    subjects.forEach((subject, index) => {
+        subject.style.opacity = '0';
+        subject.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            subject.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+            subject.style.opacity = '1';
+            subject.style.transform = 'translateY(0)';
+        }, 100 + (index * 50));
+    });
+    
+    // Add subtle hover effect to the entire card
+    const cards = document.querySelectorAll('.group');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-6px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+});
+</script>
+{% endblock %}

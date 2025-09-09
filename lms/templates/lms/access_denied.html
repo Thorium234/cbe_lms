@@ -1,0 +1,45 @@
+<!-- access_denied.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Denied</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-ban text-red-600 text-2xl"></i>
+        </div>
+        
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Access Denied</h1>
+        
+        <p class="text-gray-600 mb-6">
+            You don't have permission to access this resource. 
+            Please sign in or contact the administrator if you believe this is an error.
+        </p>
+        
+        <div class="space-y-3">
+            <a href="/" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                <i class="fas fa-home mr-2"></i>Return to Home
+            </a>
+            
+            {% if user.is_authenticated %}
+                <a href="{% url 'lms:grade_level_dashboard' %}" class="block w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Go Back
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}?next={{ request.path }}" class="block w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Sign In
+                </a>
+            {% endif %}
+        </div>
+        
+        <div class="mt-6 text-sm text-gray-500">
+            <p>If you need access to premium content, please create an account or upgrade your membership.</p>
+        </div>
+    </div>
+</body>
+</html>

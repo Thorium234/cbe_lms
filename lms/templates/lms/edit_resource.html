@@ -1,0 +1,546 @@
+{% extends 'lms/base.html' %}
+{% block title %}Edit Resource{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-6 py-8">
+    <div class="flex justify-between items-center mb-6 animate-fade-in-down">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Edit Resource</h1>
+            <p class="text-gray-600 mt-2">
+                {% if grade %}
+                    Editing for: <span class="font-semibold text-blue-600">{{ grade.name }}</span>
+                    {% if subject %} - <span class="font-semibold text-green-600">{{ subject.name }}</span>{% endif %}
+                {% else %}
+                    Editing resource in CBC LMS
+                {% endif %}
+            </p>
+        </div>
+        <a href="{% if grade and subject %}{% url 'lms:subject_dashboard' grade_id=grade.id subject_id=subject.id %}{% else %}{% url 'lms:grade_level_dashboard' %}{% endif %}"
+           class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-300 transform hover:scale-105">
+            <i class="fas fa-arrow-left mr-2"></i> Back
+        </a>
+    </div>
+
+    <!-- Debug Output -->
+    <div class="bg-gray-100 p-2 mb-4 text-sm text-gray-600">
+        Debug: resource_id={{ resource.id|default:"None" }}, grade_id={{ grade.id|default:"None" }}, subject_id={{ subject.id|default:"None" }}
+    </div>
+
+    <!-- Edit Form -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100 animate-fade-in">
+        <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                <i class="fas fa-edit mr-3 text-blue-600"></i> Resource Details
+            </h2>
+            <p class="text-gray-600 text-sm mt-1">Update the details for your resource</p>
+        </div>
+
+        {% if messages %}
+        <div class="p-6">
+            {% for message in messages %}
+            <div class="bg-{% if message.tags == 'error' %}red{% else %}green{% endif %}-100 text-{% if message.tags == 'error' %}red{% else %}green{% endif %}-800 p-4 rounded-lg mb-4">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if form.errors %}
+        <div class="p-6">
+            <div class="bg-red-100 text-red-800 p-4 rounded-lg mb-4">
+                <p class="text-sm font-medium">Please correct the following errors:</p>
+                <ul class="list-disc pl-5">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <form id="edit-form" method="post" enctype="multipart/form-data" class="p-6">
+            {% csrf_token %}
+
+            <!-- Grade -->
+            {% if grade %}
+                <input type="hidden" name="grade" value="{{ grade.id }}" id="grade-id">
+            {% else %}
+                <div class="mb-6 animate-slide-in-left">
+                    <label for="{{ form.grade.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <span class="flex items-center">
+                            <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
+                            {{ form.grade.label }} <span class="text-red-500">*</span>
+                        </span>
+                    </label>
+                    {{ form.grade }}
+                    {% if form.grade.errors %}
+                        <p class="mt-1 text-sm text-red-500">{{ form.grade.errors }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <!-- Subject -->
+            {% if subject %}
+                <input type="hidden" name="subject" value="{{ subject.id }}" id="subject-id">
+            {% else %}
+                <div class="mb-6 animate-slide-in-left">
+                    <label for="{{ form.subject.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <span class="flex items-center">
+                            <i class="fas fa-book text-blue-500 mr-2"></i>
+                            {{ form.subject.label }} <span class="text-red-500">*</span>
+                        </span>
+                    </label>
+                    {{ form.subject }}
+                    {% if form.subject.errors %}
+                        <p class="mt-1 text-sm text-red-500">{{ form.subject.errors }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <!-- Title -->
+            <div class="mb-6 animate-slide-in-left">
+                <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="flex items-center">
+                        <i class="fas fa-heading text-blue-500 mr-2"></i>
+                        {{ form.title.label }} <span class="text-red-500">*</span>
+                    </span>
+                </label>
+                {{ form.title }}
+                <p class="mt-1 text-sm text-gray-500 flex items-center">
+                    <i class="fas fa-info-circle mr-1 text-blue-400"></i>
+                    A descriptive title for your resource
+                </p>
+                {% if form.title.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.title.errors }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Resource Type -->
+            <div class="mb-6 animate-slide-in-right">
+                <label for="{{ form.resource_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="flex items-center">
+                        <i class="fas fa-file-alt text-green-500 mr-2"></i>
+                        {{ form.resource_type.label }} <span class="text-red-500">*</span>
+                    </span>
+                </label>
+                {{ form.resource_type }}
+                {% if form.resource_type.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.resource_type.errors }}</p>
+                {% endif %}
+            </div>
+
+            <!-- File Upload Area -->
+            <div class="mb-6 animate-fade-in">
+                <label class="block text-sm font-medium text-gray-700 mb-4">
+                    <span class="flex items-center">
+                        <i class="fas fa-file-upload text-purple-500 mr-2"></i>
+                        Upload File
+                    </span>
+                </label>
+
+                <!-- Current File -->
+                {% if resource.file %}
+                <div class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg border border-blue-100 shadow-sm">
+                    <p class="font-medium text-gray-800">Current File: {{ resource.file.name|basename }}</p>
+                    <p class="text-sm text-gray-600">Size: {{ resource.file_size|filesizeformat }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Drag and Drop Area -->
+                <div id="drop-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors duration-200 cursor-pointer relative overflow-hidden">
+                    <!-- Loading overlay -->
+                    <div id="loading-overlay" class="absolute inset-0 bg-blue-50 bg-opacity-80 flex flex-col items-center justify-center hidden z-10">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                        <p class="text-blue-700 font-medium">Uploading...</p>
+                        <div class="w-64 bg-gray-200 rounded-full h-2.5 mt-4">
+                            <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p id="progress-text" class="text-blue-700 text-sm mt-2">0%</p>
+                    </div>
+
+                    <div id="upload-content" class="relative z-0">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                        <p class="text-lg font-medium text-gray-700 mb-2">Drag & drop a new file here (optional)</p>
+                        <p class="text-gray-500 mb-4">or</p>
+                        <div class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 cursor-pointer">
+                            <i class="fas fa-folder-open mr-2"></i>
+                            <span>Browse Files</span>
+                        </div>
+                        <p class="mt-4 text-sm text-gray-500">Supported formats: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, JPG, PNG, MP4, MP3</p>
+                    </div>
+                </div>
+
+                <!-- File input (hidden) -->
+                {{ form.file }}
+
+                <!-- File preview -->
+                <div id="file-preview" class="mt-4 hidden animate-fade-in">
+                    <div class="flex items-center p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg border border-blue-100 shadow-sm">
+                        <div class="bg-blue-100 p-2 rounded-full mr-3">
+                            <i id="file-icon" class="fas fa-file text-xl text-blue-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p id="file-name" class="font-medium text-gray-800"></p>
+                            <p id="file-size" class="text-sm text-gray-600 mt-1"></p>
+                        </div>
+                        <button type="button" id="remove-file" class="text-red-500 hover:text-red-700 transition-colors duration-200">
+                            <i class="fas fa-times-circle text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                {% if form.file.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.file.errors }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Description -->
+            <div class="mb-6 animate-slide-in-left">
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="flex items-center">
+                        <i class="fas fa-align-left text-orange-500 mr-2"></i>
+                        {{ form.description.label }}
+                    </span>
+                </label>
+                {{ form.description }}
+                <p class="mt-1 text-sm text-gray-500 flex items-center">
+                    <i class="fas fa-info-circle mr-1 text-blue-400"></i>
+                    Describe the content, learning objectives, and any other relevant information
+                </p>
+                {% if form.description.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.description.errors }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Options -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 animate-fade-in">
+                <div class="flex items-center p-4 bg-green-50 rounded-lg border border-green-100 transition-all duration-300 hover:shadow-md">
+                    <div class="bg-white p-2 rounded-full shadow-sm mr-3">
+                        {{ form.allow_download }}
+                    </div>
+                    <div>
+                        <label for="{{ form.allow_download.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            <span class="flex items-center">
+                                <i class="fas fa-download text-green-600 mr-2"></i>
+                                {{ form.allow_download.label }}
+                            </span>
+                        </label>
+                        <p class="text-xs text-gray-500">Enable this to allow users to download the file</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center p-4 bg-purple-50 rounded-lg border border-purple-100 transition-all duration-300 hover:shadow-md">
+                    <div class="bg-white p-2 rounded-full shadow-sm mr-3">
+                        {{ form.is_premium }}
+                    </div>
+                    <div>
+                        <label for="{{ form.is_premium.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            <span class="flex items-center">
+                                <i class="fas fa-star text-purple-600 mr-2"></i>
+                                {{ form.is_premium.label }}
+                            </span>
+                        </label>
+                        <p class="text-xs text-gray-500">Mark as premium for restricted access</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit button -->
+            <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 animate-slide-in-right">
+                <a href="{% if grade and subject %}{% url 'lms:subject_dashboard' grade_id=grade.id subject_id=subject.id %}{% else %}{% url 'lms:grade_level_dashboard' %}{% endif %}"
+                   class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 hover:shadow-md flex items-center justify-center">
+                    <i class="fas fa-times-circle mr-2"></i> Cancel
+                </a>
+                <button type="submit" id="submit-btn"
+                        class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center justify-center">
+                    <i class="fas fa-save mr-2"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Notification toast -->
+<div id="notification" class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transform translate-y-full opacity-0 transition-all duration-300">
+</div>
+{% endblock %}
+
+{% block js %}
+<style>
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideInRight {
+        from { opacity: 0; transform: translateX(20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .animate-fade-in-down { animation: fadeInDown 0.6s ease-out; }
+    .animate-slide-in-left { animation: slideInLeft 0.6s ease-out; }
+    .animate-slide-in-right { animation: slideInRight 0.6s ease-out; }
+    .animate-fade-in { animation: fadeIn 0.6s ease-out; }
+    .file-pdf { color: #d946ef; }
+    .file-doc { color: #3b82f6; }
+    .file-ppt { color: #f59e0b; }
+    .file-xls { color: #10b981; }
+    .file-img { color: #ec4899; }
+    .file-video { color: #ef4444; }
+    .file-audio { color: #8b5cf6; }
+    .file-other { color: #6b7280; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('edit-form');
+    const dropArea = document.getElementById('drop-area');
+    const fileInput = document.getElementById('id_file');
+    const filePreview = document.getElementById('file-preview');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const removeFile = document.getElementById('remove-file');
+    const submitBtn = document.getElementById('submit-btn');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const fileIcon = document.getElementById('file-icon');
+
+    // File type icons mapping
+    const fileIcons = {
+        'pdf': 'file-pdf',
+        'doc': 'file-doc',
+        'docx': 'file-doc',
+        'ppt': 'file-ppt',
+        'pptx': 'file-ppt',
+        'xls': 'file-xls',
+        'xlsx': 'file-xls',
+        'jpg': 'file-img',
+        'jpeg': 'file-img',
+        'png': 'file-img',
+        'mp4': 'file-video',
+        'mov': 'file-video',
+        'avi': 'file-video',
+        'mp3': 'file-audio',
+        'wav': 'file-audio'
+    };
+
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Show notification
+    function showNotification(message, type) {
+        const notification = document.getElementById('notification');
+        notification.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transform translate-y-0 opacity-100 transition-all duration-300 ${type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        setTimeout(() => {
+            notification.className = 'fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transform translate-y-full opacity-0 transition-all duration-300';
+        }, 5000);
+    }
+
+    // Handle file selection
+    function handleFileSelect(file) {
+        // Validate file size
+        const maxSize = {{ max_upload_size_mb|default:10 }} * 1024 * 1024;
+        if (file.size > maxSize) {
+            showNotification(`File too large. Maximum size: {{ max_upload_size_mb|default:10 }}MB`, 'error');
+            return false;
+        }
+
+        // Show file preview
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+
+        // Set file icon based on file type
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        fileIcon.className = 'fas ';
+        if (fileIcons[fileExt]) {
+            fileIcon.className += `fa-file-${fileIcons[fileExt]}`;
+        } else {
+            fileIcon.className += 'fa-file-file-other';
+        }
+
+        filePreview.classList.remove('hidden');
+        showNotification('File selected successfully', 'success');
+        return true;
+    }
+
+    // Prevent default drag behaviors
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Add event listeners for drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    // Highlight drop area when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => {
+            dropArea.classList.add('border-blue-400', 'bg-blue-50');
+        }, false);
+    });
+
+    // Remove highlight when item is dragged away
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => {
+            dropArea.classList.remove('border-blue-400', 'bg-blue-50');
+        }, false);
+    });
+
+    // Handle dropped files
+    dropArea.addEventListener('drop', (e) => {
+        preventDefaults(e);
+        const dt = e.dataTransfer;
+        const files = dt.files;
+
+        if (files.length > 0) {
+            fileInput.files = dt.files;
+            const event = new Event('change', { bubbles: true });
+            fileInput.dispatchEvent(event);
+        }
+    }, false);
+
+    // Click on drop area to trigger file input
+    dropArea.addEventListener('click', (e) => {
+        if (loadingOverlay.classList.contains('hidden')) {
+            fileInput.click();
+        }
+    });
+
+    // Handle file input change
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            if (handleFileSelect(this.files[0])) {
+                showNotification('File selected successfully', 'success');
+            }
+        }
+    });
+
+    // Remove file
+    removeFile.addEventListener('click', function() {
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+        showNotification('File removed', 'info');
+    });
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Validate form
+        const title = document.getElementById('id_title').value.trim();
+        const resourceType = document.getElementById('id_resource_type').value;
+        const subject = document.getElementById('subject-id') ? document.getElementById('subject-id').value : document.getElementById('id_subject')?.value;
+        const grade = document.getElementById('grade-id') ? document.getElementById('grade-id').value : document.getElementById('id_grade')?.value;
+
+        if (!title) {
+            showNotification('Please enter a title', 'error');
+            return;
+        }
+
+        if (!resourceType) {
+            showNotification('Please select a resource type', 'error');
+            return;
+        }
+
+        if (!subject) {
+            showNotification('Please select a subject', 'error');
+            return;
+        }
+
+        if (!grade) {
+            showNotification('Please select a grade', 'error');
+            return;
+        }
+
+        // Show loading state
+        loadingOverlay.classList.remove('hidden');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Saving...</span>';
+
+        // Create FormData
+        const formData = new FormData(form);
+
+        // Submit via AJAX
+        const xhr = new XMLHttpRequest();
+
+        // Progress tracking
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                progressBar.style.width = percentComplete + '%';
+                progressText.textContent = Math.round(percentComplete) + '%';
+            }
+        });
+
+        xhr.addEventListener('load', function() {
+            loadingOverlay.classList.add('hidden');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i><span>Save Changes</span>';
+
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (xhr.status === 200 && response.success) {
+                    showNotification('Resource updated successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = response.redirect_url;
+                    }, 1000);
+                } else {
+                    showNotification(response.error || 'Update failed', 'error');
+                    if (response.errors) {
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'bg-red-100 text-red-800 p-4 rounded-lg mb-4';
+                        errorDiv.innerHTML = '<p class="text-sm font-medium">Please correct the following errors:</p><ul class="list-disc pl-5">';
+                        for (const [field, errors] of Object.entries(JSON.parse(response.errors))) {
+                            errors.forEach(error => {
+                                errorDiv.innerHTML += `<li>${field}: ${error.message}</li>`;
+                            });
+                        }
+                        errorDiv.innerHTML += '</ul>';
+                        form.insertBefore(errorDiv, form.firstChild);
+                    }
+                }
+            } catch (e) {
+                showNotification('Invalid response from server. Please try again.', 'error');
+                console.error('Response:', xhr.responseText);
+            }
+        });
+
+        xhr.addEventListener('error', function() {
+            loadingOverlay.classList.add('hidden');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i><span>Save Changes</span>';
+            showNotification('Update failed: Network error', 'error');
+        });
+
+        xhr.open('POST', '{% url "lms:edit_resource" resource.id %}');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.send(formData);
+    });
+});
+</script>
+{% endblock %}

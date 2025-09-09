@@ -1,0 +1,170 @@
+{% extends 'lms/base.html' %}
+{% load static %}
+{% load filters %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+    <!-- Debug Output -->
+    <div class="bg-gray-100 p-2 mb-4 text-sm text-gray-600">
+        Debug: grade_id={{ grade.id|default:"None" }}, subject_id={{ subject.id|default:"None" }}, resources_count={{ page_obj.object_list|length }}
+    </div>
+
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+            {% if subject and grade %}
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">{{ subject.name }}</h1>
+                <p class="text-gray-600 text-sm sm:text-base">{{ grade.name }}</p>
+            {% else %}
+                <div class="bg-red-100 text-red-800 p-4 rounded-lg">
+                    <p class="text-sm sm:text-base font-medium">Error: Missing subject or grade information.</p>
+                    <a href="{% url 'lms:grade_level_dashboard' %}" class="text-blue-600 hover:underline">Return to Dashboard</a>
+                </div>
+            {% endif %}
+        </div>
+        {% if subject and grade %}
+        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+            <a href="{% url 'lms:grade_dashboard' grade_id=grade.id %}" class="inline-flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200 text-sm font-medium w-full sm:w-auto">
+                <i class="fas fa-arrow-left mr-2"></i> Back to {{ grade.name }}
+            </a>
+            {% if user.is_staff %}
+                <a href="{% url 'lms:upload_resource' %}?grade_id={{ grade.id }}&subject_id={{ subject.id }}"
+                   class="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm font-medium w-full sm:w-auto"
+                   title="Upload a resource for {{ subject.name }} in {{ grade.name }}">
+                    <i class="fas fa-upload mr-2"></i> Upload Resource
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Resource Stats - Mobile optimized -->
+    {% if page_obj.object_list and subject and grade %}
+    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4 mb-6">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="text-center p-3 bg-white rounded-lg">
+                <div class="text-xl sm:text-2xl font-bold text-indigo-600">{{ page_obj.object_list|length }}</div>
+                <div class="text-xs sm:text-sm text-gray-600 mt-1">Total Resources</div>
+            </div>
+            <div class="text-center p-3 bg-white rounded-lg">
+                {% with most_downloaded=page_obj.object_list|dictsort:"download_count"|last %}
+                <div class="text-xl sm:text-2xl font-bold text-green-600">{{ most_downloaded.download_count|default:0 }}</div>
+                <div class="text-xs sm:text-sm text-gray-600 mt-1">Most Downloads</div>
+                {% endwith %}
+            </div>
+            <div class="text-center p-3 bg-white rounded-lg">
+                <div class="text-xl sm:text-2xl font-bold text-purple-600">{{ page_obj.object_list|filter_by_access:"downloadable"|length }}</div>
+                <div class="text-xs sm:text-sm text-gray-600 mt-1">Downloadable</div>
+            </div>
+            <div class="text-center p-3 bg-white rounded-lg">
+                <div class="text-xl sm:text-2xl font-bold text-orange-600">{{ page_obj.object_list|filter_by_access:"premium"|length }}</div>
+                <div class="text-xs sm:text-sm text-gray-600 mt-1">Premium</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Resource Type Filter - Mobile optimized -->
+    {% if all_resource_types and subject and grade %}
+    <div class="bg-white rounded-lg shadow mb-6 p-3">
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'lms:subject_dashboard' grade_id=grade.id subject_id=subject.id %}"
+               class="px-3 py-1 rounded-full text-xs sm:text-sm {% if not selected_type %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-800 hover:bg-gray-300{% endif %}">
+                All Types
+            </a>
+            {% for rt in all_resource_types %}
+            <a href="{% url 'lms:subject_dashboard' grade_id=grade.id subject_id=subject.id %}?type={{ rt.name }}"
+               class="px-3 py-1 rounded-full text-xs sm:text-sm {% if selected_type == rt.name %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-800 hover:bg-gray-300{% endif %}">
+                {{ rt.name|truncatechars:10 }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Resources by Type -->
+    {% if resource_types and subject and grade %}
+        {% for type_name, resources_list in resource_types.items %}
+        <div class="bg-white rounded-lg shadow mb-4 overflow-hidden">
+            <div class="bg-gray-50 px-4 sm:px-6 py-3 border-b border-gray-200">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-800 flex items-center">
+                    <i class="{{ resources_list.0.resource_type.icon|default:'fas fa-file' }} mr-2 sm:mr-3 text-base sm:text-lg"></i>
+                    <span class="truncate">{{ type_name }} ({{ resources_list|length }})</span>
+                </h2>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for resource in resources_list %}
+                <div class="p-4 sm:p-6 hover:bg-gray-50 transition-colors duration-150 {% if new_resource_id and resource.id == new_resource_id|add:'0' %}bg-green-50 border-l-4 border-green-500{% endif %}">
+                    <div class="flex flex-col lg:flex-row gap-4">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-2 line-clamp-2">{{ resource.title }}</h3>
+                            <p class="text-gray-600 text-xs sm:text-sm mb-3 line-clamp-2">{{ resource.description|truncatewords:15 }}</p>
+                            <div class="flex flex-wrap items-center text-xs sm:text-sm text-gray-500 gap-x-3 gap-y-1">
+                                <span>By: {{ resource.uploaded_by.username|truncatechars:15 }}</span>
+                                <span>•</span>
+                                <span>{{ resource.upload_date|date:"M d, Y" }}</span>
+                                <span>•</span>
+                                <span>{{ resource.view_count }} views</span>
+                                <span>•</span>
+                                <span>{{ resource.download_count }} downloads</span>
+                                {% if resource.is_premium %}
+                                <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs mt-1 sm:mt-0">Premium</span>
+                                {% endif %}
+                                {% if not resource.allow_download %}
+                                <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs mt-1 sm:mt-0">No Download</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2 min-w-fit">
+                            <a href="{% url 'lms:view_resource' resource_id=resource.id %}"
+                               class="flex items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs sm:text-sm rounded-lg hover:bg-blue-700 transition-colors duration-200 whitespace-nowrap">
+                                <i class="fas fa-eye mr-1 sm:mr-2 text-sm"></i> View
+                            </a>
+                            {% if resource.allow_download and resource|can_download_resource:user %}
+                            <a href="{% url 'lms:download_resource' resource_id=resource.id %}"
+                               class="flex items-center justify-center px-3 py-2 bg-green-600 text-white text-xs sm:text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 whitespace-nowrap">
+                                <i class="fas fa-download mr-1 sm:mr-2 text-sm"></i> Download
+                            </a>
+                            {% endif %}
+                            {% if user.is_staff %}
+                            <a href="{% url 'lms:edit_resource' resource_id=resource.id %}?grade_id={{ grade.id }}&subject_id={{ subject.id }}"
+                               class="flex items-center justify-center px-3 py-2 bg-yellow-600 text-white text-xs sm:text-sm rounded-lg hover:bg-yellow-700 transition-colors duration-200 whitespace-nowrap">
+                                <i class="fas fa-edit mr-1 sm:mr-2 text-sm"></i> Edit
+                            </a>
+                            <a href="{% url 'lms:delete_resource' resource_id=resource.id %}?grade_id={{ grade.id }}&subject_id={{ subject.id }}"
+                               class="flex items-center justify-center px-3 py-2 bg-red-600 text-white text-xs sm:text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 whitespace-nowrap">
+                                <i class="fas fa-trash mr-1 sm:mr-2 text-sm"></i> Delete
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    <p class="text-sm sm:text-base">No {{ type_name }} resources available.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="bg-white rounded-lg shadow p-6 sm:p-8 text-center">
+            <i class="fas fa-folder-open text-gray-400 text-5xl sm:text-6xl mb-4"></i>
+            <h3 class="text-lg sm:text-xl font-medium text-gray-800 mb-2">No Resources Available</h3>
+            <p class="text-gray-600 text-sm sm:text-base">
+                {% if subject and grade %}
+                    There are no resources for {{ subject.name }} in {{ grade.name }} yet.
+                {% else %}
+                    Unable to display resources due to missing subject or grade information.
+                {% endif %}
+            </p>
+            {% if user.is_staff and subject and grade %}
+                <p class="text-gray-500 text-sm sm:text-base mt-2">
+                    <a href="{% url 'lms:upload_resource' %}?grade_id={{ grade.id }}&subject_id={{ subject.id }}"
+                       class="text-blue-600 hover:underline">Upload the first resource</a> to get started.
+                </p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

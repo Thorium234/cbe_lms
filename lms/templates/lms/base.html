@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CBC LMS{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}">
+    {% block css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo and Brand -->
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-graduation-cap text-white"></i>
+                    </div>
+                    <a href="{% url 'lms:grade_level_dashboard' %}" class="text-xl font-bold text-gray-800">{{ site_settings.site_name|default:"CBC LMS" }}</a>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <!-- Dashboard -->
+                    <a href="{% url 'lms:grade_level_dashboard' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                        <i class="fas fa-home mr-1"></i> Dashboard
+                    </a>
+
+                    <!-- Admin Dashboard -->
+                    {% if user.is_staff %}
+                    <a href="{% url 'lms:superuser_dashboard' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                        <i class="fas fa-cog mr-1"></i> Admin
+                    </a>
+                    {% endif %}
+
+                    <!-- Information Links -->
+                    <div class="flex space-x-6">
+                        <a href="{% url 'accounts:about' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                            <i class="fas fa-info-circle mr-1"></i> About
+                        </a>
+                        <a href="{% url 'accounts:contact' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                            <i class="fas fa-envelope mr-1"></i> Contact
+                        </a>
+                        <a href="{% url 'accounts:terms' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                            <i class="fas fa-file-contract mr-1"></i> Terms
+                        </a>
+                        <a href="{% url 'accounts:privacy' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                            <i class="fas fa-shield-alt mr-1"></i> Privacy
+                        </a>
+                    </div>
+                </div>
+
+                <!-- User Menu -->
+                <div class="flex items-center space-x-4">
+                    {% if user.is_authenticated %}
+                    <span class="text-sm text-gray-600">{{ user.username }}</span>
+                    <a href="{% url 'accounts:profile' %}" class="text-sm text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-user mr-1"></i> Profile
+                    </a>
+                    <a href="{% url 'accounts:logout' %}" class="text-sm text-gray-600 hover:text-red-600">
+                        <i class="fas fa-sign-out-alt mr-1"></i> Logout
+                    </a>
+                    {% else %}
+                    <a href="{% url 'accounts:login' %}" class="text-sm text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-sign-in-alt mr-1"></i> Login
+                    </a>
+                    <a href="{% url 'accounts:signup' %}" class="text-sm text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-user-plus mr-1"></i> Sign Up
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        {% for message in messages %}
+        <div class="bg-{{ message.tags }}-100 border-l-4 border-{{ message.tags }}-500 text-{{ message.tags }}-700 p-4 rounded">
+            <p>{{ message }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">{{ site_settings.site_name|default:"CBC LMS" }}</h3>
+                    <p class="text-gray-600 text-sm">{{ site_settings.site_description|default:"Comprehensive educational resource platform for the CBC curriculum." }}</p>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-800 uppercase tracking-wider mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'lms:grade_level_dashboard' %}" class="text-gray-600 hover:text-blue-600 text-sm">Home</a></li>
+                        <li><a href="{% url 'accounts:about' %}" class="text-gray-600 hover:text-blue-600 text-sm">About Us</a></li>
+                        <li><a href="{% url 'accounts:contact' %}" class="text-gray-600 hover:text-blue-600 text-sm">Contact</a></li>
+                        <li><a href="{% url 'accounts:terms' %}" class="text-gray-600 hover:text-blue-600 text-sm">Terms of Service</a></li>
+                        <li><a href="{% url 'accounts:privacy' %}" class="text-gray-600 hover:text-blue-600 text-sm">Privacy Policy</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-800 uppercase tracking-wider mb-4">Connect With Us</h4>
+                    <div class="flex space-x-4 mb-4">
+                        {% if site_settings.facebook_url %}
+                        <a href="{{ site_settings.facebook_url }}" class="text-blue-600 hover:text-blue-800">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.whatsapp_url %}
+                        <a href="{{ site_settings.whatsapp_url }}" class="text-green-600 hover:text-green-800">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.twitter_url %}
+                        <a href="{{ site_settings.twitter_url }}" class="text-blue-400 hover:text-blue-600">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.instagram_url %}
+                        <a href="{{ site_settings.instagram_url }}" class="text-pink-600 hover:text-pink-800">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.linkedin_url %}
+                        <a href="{{ site_settings.linkedin_url }}" class="text-blue-700 hover:text-blue-900">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% if site_settings.contact_email %}
+                    <p class="text-gray-600 text-sm">Email: {{ site_settings.contact_email }}</p>
+                    {% endif %}
+                    {% if site_settings.phone_number %}
+                    <p class="text-gray-600 text-sm">Phone: {{ site_settings.phone_number }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 mt-6 pt-6 text-center">
+                <p class="text-gray-500 text-sm">
+                    &copy; {% now "Y" %} {{ site_settings.site_name|default:"CBC LMS" }}. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    {% block js %}
+    {% endblock %}
+</body>
+</html>

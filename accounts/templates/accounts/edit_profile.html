@@ -1,0 +1,294 @@
+
+<!-- accounts/templates/accounts/edit_profile.html -->
+{% extends 'lms/base.html' %}
+{% load static %}
+{% block title %}Edit Profile - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-6 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Edit Profile</h1>
+            <p class="text-gray-600 mt-2">Update your personal information and preferences</p>
+        </div>
+        <a href="{% url 'accounts:profile' %}" 
+           class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
+            <i class="fas fa-arrow-left mr-2"></i> Back to Profile
+        </a>
+    </div>
+
+    <!-- Profile Edit Form -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="p-6 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800">Personal Information</h2>
+            <p class="text-gray-600 text-sm">Update your profile details</p>
+        </div>
+        
+        <form method="post" class="p-6" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            {% if messages %}
+                <div class="mb-6">
+                    {% for message in messages %}
+                        <div class="p-4 mb-4 text-sm rounded-lg {% if message.tags == 'error' %}bg-red-50 text-red-800{% else %}bg-green-50 text-green-800{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Username -->
+                <div>
+                    <label for="id_username" class="block text-sm font-medium text-gray-700 mb-2">
+                        Username <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" 
+                           name="username" 
+                           id="id_username" 
+                           value="{{ user.username }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           required>
+                </div>
+                
+                <!-- Email -->
+                <div>
+                    <label for="id_email" class="block text-sm font-medium text-gray-700 mb-2">
+                        Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" 
+                           name="email" 
+                           id="id_email" 
+                           value="{{ user.email }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           required>
+                </div>
+            </div>
+            
+            <!-- Profile Picture -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Profile Picture
+                </label>
+                <div class="flex items-center space-x-6">
+                    <div class="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
+                        {% if profile.avatar %}
+                            <img src="{{ profile.avatar.url }}" alt="Profile picture" class="w-full h-full object-cover">
+                        {% else %}
+                            <div class="w-full h-full flex items-center justify-center bg-gray-300">
+                                <i class="fas fa-user text-2xl text-gray-500"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1">
+                        <input type="file" 
+                               name="avatar" 
+                               id="id_avatar" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                               accept="image/jpeg,image/png,image/gif">
+                        <p class="mt-1 text-sm text-gray-500">JPG, PNG or GIF. Max size: 5MB</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bio/Description -->
+            <div class="mb-6">
+                <label for="id_bio" class="block text-sm font-medium text-gray-700 mb-2">
+                    Bio
+                </label>
+                <textarea name="bio" 
+                          id="id_bio" 
+                          rows="4" 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Tell us about yourself...">{{ profile.bio|default:'' }}</textarea>
+            </div>
+            
+            <!-- Preferences -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Preferences</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Theme Preference -->
+                    <div>
+                        <label for="id_theme_preference" class="block text-sm font-medium text-gray-700 mb-2">
+                            Theme
+                        </label>
+                        <select name="theme_preference" 
+                                id="id_theme_preference" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="light" {% if profile.theme_preference == 'light' %}selected{% endif %}>Light</option>
+                            <option value="dark" {% if profile.theme_preference == 'dark' %}selected{% endif %}>Dark</option>
+                            <option value="auto" {% if profile.theme_preference == 'auto' %}selected{% endif %}>Auto (System)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Notification Preferences -->
+                    <div class="flex items-center">
+                        <input type="checkbox" 
+                               name="email_notifications" 
+                               id="id_email_notifications" 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                               {% if profile.email_notifications %}checked{% endif %}>
+                        <label for="id_email_notifications" class="ml-2 block text-sm text-gray-700">
+                            Receive email notifications
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Submit buttons -->
+            <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
+                <a href="{% url 'accounts:profile' %}" 
+                   class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-center">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Change Password Section -->
+    <div class="mt-8 bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="p-6 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800">Change Password</h2>
+            <p class="text-gray-600 text-sm">Update your account password</p>
+        </div>
+        
+        <form method="post" action="{% url 'accounts:change_password' %}" class="p-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <!-- Current Password -->
+                <div>
+                    <label for="id_current_password" class="block text-sm font-medium text-gray-700 mb-2">
+                        Current Password <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" 
+                           name="current_password" 
+                           id="id_current_password" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           required>
+                </div>
+                
+                <!-- New Password -->
+                <div>
+                    <label for="id_new_password1" class="block text-sm font-medium text-gray-700 mb-2">
+                        New Password <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" 
+                           name="new_password1" 
+                           id="id_new_password1" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           required>
+                </div>
+                
+                <!-- Confirm New Password -->
+                <div>
+                    <label for="id_new_password2" class="block text-sm font-medium text-gray-700 mb-2">
+                        Confirm New Password <span class="text-red-500">*</span>
+                    </label>
+                    <input type="password" 
+                           name="new_password2" 
+                           id="id_new_password2" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           required>
+                </div>
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="submit" 
+                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                    Change Password
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Danger Zone -->
+    <div class="mt-8 bg-white rounded-lg shadow-lg overflow-hidden border-2 border-red-100">
+        <div class="p-6 border-b border-gray-200 bg-red-50">
+            <h2 class="text-xl font-semibold text-red-800">Danger Zone</h2>
+            <p class="text-red-700 text-sm">These actions cannot be undone</p>
+        </div>
+        
+        <div class="p-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">Deactivate Account</h3>
+                    <p class="text-gray-600 mt-1">Your account will be deactivated. You can reactivate it by logging in again.</p>
+                </div>
+                <button type="button" 
+                        onclick="confirmDeactivation()"
+                        class="mt-4 sm:mt-0 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200">
+                    Deactivate Account
+                </button>
+            </div>
+            
+            <hr class="my-6">
+            
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">Delete Account</h3>
+                    <p class="text-gray-600 mt-1">Permanently delete your account and all your data. This action cannot be undone.</p>
+                </div>
+                <button type="button" 
+                        onclick="confirmDeletion()"
+                        class="mt-4 sm:mt-0 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+                    Delete Account
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deactivation Confirmation Modal -->
+<div id="deactivation-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Confirm Account Deactivation</h3>
+        <p class="text-gray-600 mb-6">Are you sure you want to deactivate your account? You can reactivate it by logging in again.</p>
+        <div class="flex justify-end space-x-3">
+            <button type="button" 
+                    onclick="document.getElementById('deactivation-modal').classList.add('hidden')"
+                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                Cancel
+            </button>
+            <button type="button" 
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                Deactivate
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Deletion Confirmation Modal -->
+<div id="deletion-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Confirm Account Deletion</h3>
+        <p class="text-gray-600 mb-6">Are you sure you want to permanently delete your account? This action cannot be undone and all your data will be lost.</p>
+        <div class="flex justify-end space-x-3">
+            <button type="button" 
+                    onclick="document.getElementById('deletion-modal').classList.add('hidden')"
+                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                Cancel
+            </button>
+            <button type="button" 
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                Delete Account
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDeactivation() {
+    document.getElementById('deactivation-modal').classList.remove('hidden');
+}
+
+function confirmDeletion() {
+    document.getElementById('deletion-modal').classList.remove('hidden');
+}
+</script>
+{% endblock %}

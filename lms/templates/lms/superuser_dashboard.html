@@ -1,0 +1,454 @@
+{% extends 'lms/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+        <a href="{% url 'lms:grade_level_dashboard' %}" class="text-blue-600 hover:text-blue-800 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Back to Home
+        </a>
+    </div>
+
+    <!-- Dashboard Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100">
+                    <i class="fas fa-graduation-cap text-blue-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-gray-500 text-sm">Education Levels</p>
+                    <p class="text-2xl font-semibold">{{ education_levels|length }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100">
+                    <i class="fas fa-school text-green-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-gray-500 text-sm">Grades</p>
+                    <p class="text-2xl font-semibold">{{ grades|length }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100">
+                    <i class="fas fa-book text-purple-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-gray-500 text-sm">Subjects</p>
+                    <p class="text-2xl font-semibold">{{ subjects|length }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-orange-100">
+                    <i class="fas fa-file-alt text-orange-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-gray-500 text-sm">Resources</p>
+                    <p class="text-2xl font-semibold">{{ resources|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Tabs -->
+    <div class="bg-white rounded-lg shadow-lg">
+        <div class="border-b border-gray-200">
+            <nav class="flex space-x-8 px-6">
+                <button class="py-4 px-1 border-b-2 border-blue-500 text-blue-600 font-medium" data-tab="education">Education Levels</button>
+                <button class="py-4 px-1 text-gray-500 hover:text-gray-700" data-tab="grades">Grades</button>
+                <button class="py-4 px-1 text-gray-500 hover:text-gray-700" data-tab="categories">Categories</button>
+                <button class="py-4 px-1 text-gray-500 hover:text-gray-700" data-tab="subjects">Subjects</button>
+                <button class="py-4 px-1 text-gray-500 hover:text-gray-700" data-tab="resource-types">Resource Types</button>
+                <button class="py-4 px-1 text-gray-500 hover:text-gray-700" data-tab="pathways">Pathways</button>
+                <button class="py-4 px-1 text-gray-500 hover:text-gray-700" data-tab="resources">Resources</button>
+            </nav>
+        </div>
+
+        <!-- Education Levels Tab -->
+        <div id="education-tab" class="p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">Education Levels</h2>
+                <a href="{% url 'lms:admin_add_education_level' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-plus mr-2"></i> Add Level
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for level in education_levels %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <i class="{{ level.icon }} text-gray-400 mr-2"></i>
+                                    <span class="text-sm font-medium text-gray-900">{{ level.name }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ level.order }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'lms:admin_edit_education_level' level.id %}" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
+                                <a href="{% url 'lms:admin_delete_education_level' level.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Grades Tab -->
+        <div id="grades-tab" class="p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">Grades</h2>
+                <a href="{% url 'lms:admin_add_grade' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-plus mr-2"></i> Add Grade
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Education Level</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for grade in grades %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ grade.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">{{ grade.education_level.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ grade.order }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'lms:admin_edit_grade' grade.id %}" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
+                                <a href="{% url 'lms:admin_delete_grade' grade.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Categories Tab -->
+        <div id="categories-tab" class="p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">Subject Categories</h2>
+                <a href="{% url 'lms:admin_add_category' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-plus mr-2"></i> Add Category
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for category in categories %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ category.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <i class="{{ category.icon }} text-lg text-gray-400"></i>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'lms:admin_edit_category' category.id %}" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
+                                <a href="{% url 'lms:admin_delete_category' category.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Subjects Tab -->
+        <div id="subjects-tab" class="p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">Subjects</h2>
+                <a href="{% url 'lms:admin_add_subject' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-plus mr-2"></i> Add Subject
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grades</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for subject in subjects %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ subject.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">{{ subject.category.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">
+                                    {% for grade in subject.grades.all %}
+                                        {{ grade.name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'lms:admin_edit_subject' subject.id %}" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
+                                <a href="{% url 'lms:admin_delete_subject' subject.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Resource Types Tab -->
+        <div id="resource-types-tab" class="p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">Resource Types</h2>
+                <a href="{% url 'lms:admin_add_resource_type' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-plus mr-2"></i> Add Type
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Extension</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for rt in resource_types %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ rt.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">{{ rt.file_extension }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'lms:admin_edit_resource_type' rt.id %}" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
+                                <a href="{% url 'lms:admin_delete_resource_type' rt.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pathways Tab -->
+        <div id="pathways-tab" class="p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">Pathways</h2>
+                <a href="{% url 'lms:admin_add_pathway' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-plus mr-2"></i> Add Pathway
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for pathway in pathways %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ pathway.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">{{ pathway.grade.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'lms:admin_edit_pathway' pathway.id %}" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
+                                <a href="{% url 'lms:admin_delete_pathway' pathway.id %}" class="text-red-600 hover:text-red-900">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Resources Tab -->
+        <div id="resources-tab" class="p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">Resources</h2>
+                <a href="{% url 'lms:upload_resource' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-plus mr-2"></i> Upload Resource
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Views</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Downloads</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for resource in resources %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ resource.title }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">{{ resource.subject.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">{{ resource.resource_type.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ resource.view_count }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ resource.download_count }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if resource.is_active %}
+                                    <span class="text-green-600">Active</span>
+                                {% else %}
+                                    <span class="text-red-600">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'lms:edit_resource' resource.id %}" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
+                                <a href="{% url 'lms:delete_resource' resource.id %}" class="text-red-600 hover:text-red-900 mr-4">Delete</a>
+                                <button class="toggle-download text-blue-600 hover:text-blue-900" data-id="{{ resource.id }}">
+                                    {% if resource.is_active %}Disable{% else %}Enable{% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('[data-tab]');
+    const tabContents = {
+        'education': document.getElementById('education-tab'),
+        'grades': document.getElementById('grades-tab'),
+        'categories': document.getElementById('categories-tab'),
+        'subjects': document.getElementById('subjects-tab'),
+        'resource-types': document.getElementById('resource-types-tab'),
+        'pathways': document.getElementById('pathways-tab'),
+        'resources': document.getElementById('resources-tab')
+    };
+
+    // Tab switching
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            tabs.forEach(t => {
+                t.classList.remove('border-blue-500', 'text-blue-600');
+                t.classList.add('text-gray-500');
+            });
+            this.classList.add('border-blue-500', 'text-blue-600');
+            this.classList.remove('text-gray-500');
+            Object.values(tabContents).forEach(content => content.classList.add('hidden'));
+            tabContents[this.getAttribute('data-tab')].classList.remove('hidden');
+        });
+    });
+
+    // Initialize with education tab active
+    tabContents['education'].classList.remove('hidden');
+
+    // Configuration object with URLs
+    const config = {
+        getEducationLevel: "{% url 'lms:admin_get_education_level' %}",
+        editEducationLevel: "{% url 'lms:admin_edit_education_level' 0 %}".replace('/0/', '/'),
+        deleteEducationLevel: "{% url 'lms:admin_delete_education_level' 0 %}".replace('/0/', '/'),
+        getGrade: "{% url 'lms:admin_get_grade' %}",
+        editGrade: "{% url 'lms:admin_edit_grade' 0 %}".replace('/0/', '/'),
+        deleteGrade: "{% url 'lms:admin_delete_grade' 0 %}".replace('/0/', '/'),
+        getCategory: "{% url 'lms:admin_get_category' %}",
+        editCategory: "{% url 'lms:admin_edit_category' 0 %}".replace('/0/', '/'),
+        deleteCategory: "{% url 'lms:admin_delete_category' 0 %}".replace('/0/', '/'),
+        getSubject: "{% url 'lms:admin_get_subject' %}",
+        editSubject: "{% url 'lms:admin_edit_subject' 0 %}".replace('/0/', '/'),
+        deleteSubject: "{% url 'lms:admin_delete_subject' 0 %}".replace('/0/', '/'),
+        getResourceType: "{% url 'lms:admin_get_resource_type' %}",
+        editResourceType: "{% url 'lms:admin_edit_resource_type' 0 %}".replace('/0/', '/'),
+        deleteResourceType: "{% url 'lms:admin_delete_resource_type' 0 %}".replace('/0/', '/'),
+        getPathway: "{% url 'lms:admin_get_pathway' %}",
+        editPathway: "{% url 'lms:admin_edit_pathway' 0 %}".replace('/0/', '/'),
+        deletePathway: "{% url 'lms:admin_delete_pathway' 0 %}".replace('/0/', '/'),
+        getResource: "{% url 'lms:admin_get_resource' %}",
+        editResource: "{% url 'lms:admin_edit_resource' 0 %}".replace('/0/', '/'),
+        deleteResource: "{% url 'lms:admin_delete_resource' 0 %}".replace('/0/', '/'),
+        toggleDownload: "{% url 'lms:admin_toggle_download' %}"
+    };
+
+    // Toggle download status
+    document.querySelectorAll('.toggle-download').forEach(button => {
+        button.addEventListener('click', function() {
+            const resourceId = this.getAttribute('data-id');
+            fetch(config.toggleDownload, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `resource_id=${resourceId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.textContent = data.is_active ? 'Disable' : 'Enable';
+                    const statusCell = this.closest('tr').querySelector('td:nth-child(6)');
+                    statusCell.innerHTML = data.is_active
+                        ? '<span class="text-green-600">Active</span>'
+                        : '<span class="text-red-600">Inactive</span>';
+                } else {
+                    alert('Error toggling resource status: ' + data.error);
+                }
+            })
+            .catch(error => alert('Error: ' + error));
+        });
+    });
+});
+</script>
+{% endblock %}

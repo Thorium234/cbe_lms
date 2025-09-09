@@ -1,0 +1,407 @@
+<!-- lms/templates/lms/resource_viewer.html -->
+{% extends 'lms/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6">
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">{{ resource.title }}</h2>
+            <div class="flex flex-wrap gap-2 mt-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                    <i class="{{ resource.subject.category.icon }} mr-1"></i>
+                    {{ resource.subject.category.name }}
+                </span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    {{ resource.grade.name }}
+                </span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                    <i class="{{ resource.resource_type.icon }} mr-1"></i>
+                    {{ resource.resource_type.name }}
+                </span>
+                {% if resource.is_premium %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                    <i class="fas fa-star mr-1"></i>
+                    Premium
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex flex-col space-y-2">
+            <a href="{% url 'lms:subject_dashboard' grade_id=resource.grade.id subject_id=resource.subject.id %}" class="text-green-600 hover:text-green-700 hover:underline text-sm flex items-center">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Resources
+            </a>
+            {% if can_download %}
+            <a href="{% url 'lms:download_resource' resource_id=resource.id %}" class="inline-flex items-center bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-4 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow">
+                <i class="fas fa-download mr-2"></i> Download
+            </a>
+            {% elif resource.is_premium %}
+            <div class="inline-flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg opacity-75 cursor-not-allowed">
+                <i class="fas fa-eye mr-2"></i> View Only
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Resource Information -->
+    <div class="bg-white p-6 rounded-xl shadow-lg mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+                    Resource Details
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex">
+                        <span class="font-medium text-gray-700 w-24">Title:</span>
+                        <span class="text-gray-800">{{ resource.title }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="font-medium text-gray-700 w-24">Grade:</span>
+                        <span class="text-gray-800">{{ resource.grade.name }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="font-medium text-gray-700 w-24">Subject:</span>
+                        <span class="text-gray-800">{{ resource.subject.name }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="font-medium text-gray-700 w-24">Type:</span>
+                        <span class="flex items-center text-gray-800">
+                            <i class="{{ resource.resource_type.icon }} mr-2 text-blue-600"></i>
+                            {{ resource.resource_type.name }}
+                        </span>
+                    </div>
+                    <div class="flex">
+                        <span class="font-medium text-gray-700 w-24">Size:</span>
+                        <span id="file-size" class="text-gray-800">
+                            Calculating...
+                        </span>
+                    </div>
+                    <div class="flex">
+                        <span class="font-medium text-gray-700 w-24">Uploaded:</span>
+                        <span class="text-gray-800">{{ resource.upload_date|date:"M j, Y" }} by {{ resource.uploaded_by.username }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="font-medium text-gray-700 w-24">Downloads:</span>
+                        <span class="text-gray-800">{{ resource.download_count }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-align-left mr-2 text-blue-600"></i>
+                    Description
+                </h3>
+                <div class="bg-gray-50 p-4 rounded-lg min-h-32 border border-gray-200">
+                    {% if resource.description %}
+                        <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ resource.description }}</p>
+                    {% else %}
+                        <p class="text-gray-500 italic">No description provided.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- File Viewer -->
+    <div class="bg-white p-6 rounded-xl shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                <i class="fas fa-file-alt mr-2 text-blue-600"></i>
+                File Preview
+            </h3>
+            <div class="text-sm text-gray-600">
+                <i class="fas fa-info-circle mr-1"></i>
+                {% if resource.is_premium %}
+                    Premium content - view only
+                {% else %}
+                    Right-click and text selection disabled
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if resource.resource_type.name == 'PDF' %}
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex space-x-2">
+                    <button id="prev-page" class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-200 flex items-center">
+                        <i class="fas fa-chevron-left mr-1"></i>
+                        Previous
+                    </button>
+                    <span id="page-info" class="text-gray-700 self-center font-medium px-3 py-2 bg-gray-100 rounded-lg">Loading...</span>
+                    <button id="next-page" class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg transition-colors duration-200 flex items-center">
+                        Next
+                        <i class="fas fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="zoom-out" class="bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-lg transition-colors duration-200">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button id="zoom-in" class="bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-lg transition-colors duration-200">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="border-2 border-gray-200 rounded-xl overflow-hidden bg-white shadow-inner">
+                <canvas id="pdf-canvas" class="w-full h-[600px] bg-white"></canvas>
+            </div>
+            <div class="mt-4 text-center text-sm text-gray-500">
+                <p>Use the navigation buttons above to browse through the document. {% if not can_download %}Premium content cannot be downloaded.{% endif %}</p>
+            </div>
+        </div>
+        {% elif resource.resource_type.name == 'Video' %}
+        <div class="mb-6">
+            <div class="relative group">
+                <video id="video-player" controls class="w-full h-auto rounded-xl shadow-lg" 
+                       {% if not can_download %}controlsList="nodownload noremoteplayback"{% endif %}
+                       oncontextmenu="return false;"
+                       preload="metadata">
+                    <source src="{{ resource.file.url }}" type="video/mp4">
+                    <source src="{{ resource.file.url }}" type="video/webm">
+                    <source src="{{ resource.file.url }}" type="video/ogg">
+                    Your browser does not support the video tag.
+                </video>
+                <div id="video-overlay" class="absolute inset-0 bg-black bg-opacity-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div class="bg-black bg-opacity-50 text-white px-4 py-2 rounded-full text-sm">
+                        <i class="fas fa-info-circle mr-1"></i> 
+                        {% if resource.is_premium %}Premium content - cannot download{% else %}Right-click and downloading disabled{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% elif resource.resource_type.name == 'Audio' %}
+        <div class="mb-6">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-music text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">{{ resource.title }}</h3>
+                        <p class="text-sm text-gray-600">{{ resource.subject.name }} - {{ resource.grade.name }}</p>
+                    </div>
+                </div>
+                <audio id="audio-player" controls class="w-full" 
+                       {% if not can_download %}controlsList="nodownload"{% endif %}
+                       oncontextmenu="return false;">
+                    <source src="{{ resource.file.url }}" type="audio/mpeg">
+                    <source src="{{ resource.file.url }}" type="audio/ogg">
+                    Your browser does not support the audio tag.
+                </audio>
+                <div class="mt-3 text-center text-sm text-gray-600">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    {% if resource.is_premium %}Premium content - cannot download{% else %}Downloading is disabled{% endif %}
+                </div>
+            </div>
+        </div>
+        {% elif resource.resource_type.name == 'Image' %}
+        <div class="mb-6">
+            <div class="relative group">
+                <img src="{{ resource.file.url }}" alt="{{ resource.title }}" 
+                     class="max-w-full h-auto rounded-xl shadow-lg mx-auto border-2 border-gray-200"
+                     oncontextmenu="return false;" 
+                     draggable="false">
+                <div id="image-overlay" class="absolute inset-0 bg-black bg-opacity-0 flex items-center justify-center opacity-0 group-hover:opacity-80 transition-opacity duration-300 rounded-xl">
+                    <div class="bg-black bg-opacity-75 text-white px-6 py-3 rounded-lg text-center">
+                        <p class="font-medium mb-1"><i class="fas fa-info-circle mr-1"></i> Image Protection</p>
+                        <p class="text-sm">
+                            {% if resource.is_premium %}Premium content - cannot save{% else %}Right-click and saving disabled{% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-gradient-to-br from-gray-50 to-gray-100 p-8 rounded-xl text-center border border-gray-200">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-200 rounded-full mb-4">
+                <i class="fas fa-file text-3xl text-gray-400"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">Preview Not Available</h3>
+            <p class="text-gray-600 mb-4">This file type cannot be previewed in the browser.</p>
+            <p class="text-sm text-gray-500 mb-6">
+                File extension: 
+                <span id="file-extension" class="font-medium">
+                    Calculating...
+                </span>
+            </p>
+            {% if can_download %}
+            <a href="{% url 'lms:download_resource' resource_id=resource.id %}" class="inline-flex items-center bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-6 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg">
+                <i class="fas fa-download mr-2"></i> Download File
+            </a>
+            {% else %}
+            <div class="inline-flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-xl opacity-75 cursor-not-allowed">
+                <i class="fas fa-eye mr-2"></i> View Only
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Security Information -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-blue-600"></i>
+                </div>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-lg font-semibold text-blue-800 mb-2">Content Protection</h3>
+                <p class="text-blue-700">To protect intellectual property rights, the following restrictions are in place:</p>
+                <ul class="list-disc list-inside text-blue-700 mt-2 space-y-1">
+                    <li>Right-click context menu is disabled</li>
+                    <li>Text selection and copying are disabled</li>
+                    {% if not can_download %}
+                    <li>Downloading is not permitted for this content</li>
+                    {% endif %}
+                    <li>Screenshot prevention measures are active</li>
+                </ul>
+                <p class="text-blue-700 mt-3">
+                    {% if resource.is_premium %}
+                    Premium content can be viewed but not downloaded. Consider upgrading your subscription for full access.
+                    {% else %}
+                    These measures help protect the content creators' rights while allowing authorized viewing.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+// Function to format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Function to get file extension
+function getFileExtension(filename) {
+    if (!filename) return '';
+    const lastDot = filename.lastIndexOf('.');
+    if (lastDot === -1) return '';
+    return filename.substring(lastDot + 1).toUpperCase();
+}
+
+// Update file size and extension when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Update file size
+    const fileSizeElement = document.getElementById('file-size');
+    if (fileSizeElement) {
+        const fileSize = {{ resource.file_size }};
+        fileSizeElement.textContent = formatFileSize(fileSize);
+    }
+    
+    // Update file extension
+    const fileExtensionElement = document.getElementById('file-extension');
+    if (fileExtensionElement) {
+        const filename = "{{ resource.file.name|escapejs }}";
+        fileExtensionElement.textContent = getFileExtension(filename);
+    }
+});
+</script>
+
+{% if resource.resource_type.name == 'PDF' %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+<script src="{% static 'js/pdf_viewer.js' %}"></script>
+<script>
+// Initialize the PDF viewer when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const fileUrl = "{{ resource.file.url|escapejs }}";
+    if (fileUrl) {
+        // Wait a moment for the viewer.js to load, then initialize
+        setTimeout(() => {
+            if (typeof loadPDF === 'function') {
+                loadPDF(fileUrl);
+            } else {
+                console.error('loadPDF function is not available');
+                document.getElementById('page-info').textContent = 'PDF viewer failed to load';
+            }
+        }, 100);
+    }
+});
+</script>
+{% endif %}
+
+<!-- Enhanced security measures for all file types -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Prevent text selection across the page
+    document.addEventListener('selectstart', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    // Prevent copy and paste
+    document.addEventListener('copy', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    document.addEventListener('cut', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    document.addEventListener('paste', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    // Prevent drag and drop
+    document.addEventListener('dragstart', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    // Disable right-click on all elements
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    // Additional protection for specific elements
+    const protectedElements = document.querySelectorAll('img, canvas, video, audio');
+    protectedElements.forEach(element => {
+        element.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        element.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    });
+    
+    // Add watermark to prevent screenshots
+    function addWatermark() {
+        const watermark = document.createElement('div');
+        watermark.id = 'watermark';
+        watermark.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='50' y='50' font-family='Arial' font-size='12' fill='rgba(255,0,0,0.05)' text-anchor='middle' dominant-baseline='middle'%3ECOPYRIGHT PROTECTED%3C/text%3E%3C/svg%3E");
+            background-repeat: repeat;
+            opacity: 0.1;
+        `;
+        document.body.appendChild(watermark);
+    }
+    
+    // Add watermark after a short delay
+    setTimeout(addWatermark, 1000);
+});
+</script>
+{% endblock %}

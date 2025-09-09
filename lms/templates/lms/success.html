@@ -1,0 +1,15 @@
+{% extends 'lms/base.html' %}
+
+{% block content %}
+  <div class="container">
+    <h1>{{ message_data.title }}</h1>
+    <p>{{ message_data.message }}</p>
+    {% if content_type == 'resource' %}
+      <a href="{% url 'lms:view_resource' content_id %}">View Resource</a>
+    {% elif content_type == 'delete' or content_type == 'update' %}
+      <a href="{% url 'lms:superuser_dashboard' %}">Back to Dashboard</a>
+    {% else %}
+      <a href="{% url 'lms:grade_level_dashboard' %}">Return to Home</a>
+    {% endif %}
+  </div>
+{% endblock %}

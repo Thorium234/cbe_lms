@@ -1,0 +1,606 @@
+<!-- lms/templates/lms/view_resource.html -->
+{% extends 'lms/base.html' %}
+{% load static %}
+{% block title %}{{ resource.title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">{{ resource.title }}</h1>
+            <p class="text-gray-600 mt-2">
+                Subject: <span class="font-semibold">{{ resource.subject.name }}</span> |
+                Type: <span class="font-semibold">{{ resource.resource_type.name }}</span>
+            </p>
+        </div>
+        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+            <a href="{% url 'lms:subject_dashboard' grade_id=resource.subject.grades.first.id subject_id=resource.subject.id %}" 
+               class="inline-flex items-center justify-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200 text-sm font-medium w-full sm:w-auto">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Subject
+            </a>
+            {% if can_download %}
+            <a href="{% url 'lms:download_resource' resource_id=resource.id %}" 
+               class="inline-flex items-center justify-center px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200 text-sm font-medium w-full sm:w-auto">
+                <i class="fas fa-download mr-2"></i> Download
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Resource Viewer -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <!-- Viewer Container -->
+        <div id="viewer-container" class="relative bg-gray-50">
+            <!-- PDF Viewer -->
+            {% if viewer_type == 'pdf' %}
+            <div class="pdf-container h-screen-minus-200 overflow-auto">
+                <div id="pdf-render-container" class="flex justify-center p-4 min-h-full">
+                    <div id="pdf-pages" class="max-w-4xl w-full">
+                        <!-- Pages will be rendered here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PDF Navigation Controls -->
+            <div class="border-t border-gray-200 bg-white px-4 py-3">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="flex items-center space-x-2 w-full sm:w-auto">
+                        <button id="prev-page" 
+                                class="flex items-center px-3 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm min-w-24">
+                            <i class="fas fa-chevron-left mr-1"></i>
+                            <span>Previous</span>
+                        </button>
+                        
+                        <div class="flex items-center px-2">
+                            <span id="current-page" class="text-gray-700 font-medium text-sm">1</span>
+                            <span class="text-gray-500 text-sm mx-1">of</span>
+                            <span id="total-pages" class="text-gray-700 font-medium text-sm">1</span>
+                        </div>
+                        
+                        <button id="next-page" 
+                                class="flex items-center px-3 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm min-w-24">
+                            <span>Next</span>
+                            <i class="fas fa-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2 w-full sm:w-auto">
+                        <label for="zoom-level" class="text-sm text-gray-700 whitespace-nowrap">Zoom:</label>
+                        <select id="zoom-level" 
+                                class="border border-gray-300 rounded px-2 py-1 text-sm w-full sm:w-auto">
+                            <option value="50%">50%</option>
+                            <option value="75%">75%</option>
+                            <option value="100%" selected>100%</option>
+                            <option value="125%">125%</option>
+                            <option value="150%">150%</option>
+                            <option value="200%">200%</option>
+                            <option value="page-fit">Fit to Page</option>
+                            <option value="page-width">Fit to Width</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Loading indicator -->
+            <div id="pdf-loading" class="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-75 hidden">
+                <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p class="text-gray-700">Loading PDF...</p>
+                </div>
+            </div>
+            
+            <!-- Error message -->
+            <div id="pdf-error" class="hidden">
+                <div class="text-center p-8">
+                    <i class="fas fa-file-pdf text-6xl text-red-500 mb-4"></i>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">PDF Loading Error</h3>
+                    <p class="text-gray-600 mb-4">There was an error loading the PDF document.</p>
+                    <a href="{% url 'lms:download_resource' resource_id=resource.id %}" 
+                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-download mr-2"></i> Download PDF
+                    </a>
+                </div>
+            </div>
+            
+            {% elif viewer_type == 'video' %}
+            <!-- Video Viewer -->
+            <div class="video-container">
+                <div class="w-full flex items-center justify-center p-2">
+                    <video id="video-player" 
+                           class="max-w-full max-h-screen object-contain rounded-lg shadow-lg"
+                           controls
+                           preload="metadata"
+                           style="max-height: calc(100vh - 200px);">
+                        <source src="{{ file_url }}" type="video/mp4">
+                        <source src="{{ file_url }}" type="video/webm">
+                        <source src="{{ file_url }}" type="video/ogg">
+                        <source src="{{ file_url }}" type="video/quicktime">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            </div>
+            
+            {% elif viewer_type == 'image' %}
+            <!-- Image Viewer -->
+            <div class="image-container">
+                <div class="w-full flex items-center justify-center p-4">
+                    <img id="image-viewer" 
+                         src="{{ file_url }}" 
+                         alt="{{ resource.title }}"
+                         class="max-w-full max-h-screen object-contain rounded-lg shadow-lg cursor-zoom-in"
+                         style="max-height: calc(100vh - 200px);">
+                </div>
+            </div>
+            
+            {% elif viewer_type == 'audio' %}
+            <!-- Audio Viewer -->
+            <div class="audio-container">
+                <div class="w-full flex flex-col items-center justify-center p-8">
+                    <div class="w-64 h-64 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                        <i class="fas fa-music text-8xl text-white opacity-90"></i>
+                    </div>
+                    <div class="w-full max-w-md">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">{{ resource.title }}</h3>
+                        <audio id="audio-player" 
+                               class="w-full"
+                               controls>
+                            <source src="{{ file_url }}" type="audio/mpeg">
+                            <source src="{{ file_url }}" type="audio/ogg">
+                            <source src="{{ file_url }}" type="audio/wav">
+                            <source src="{{ file_url }}" type="audio/mp4">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                </div>
+            </div>
+            
+            {% elif viewer_type == 'document' %}
+            <!-- Document Viewer -->
+            <div class="document-container">
+                <div class="w-full h-96 flex flex-col items-center justify-center text-center p-8">
+                    <div class="bg-blue-100 p-4 rounded-full mb-6">
+                        <i class="fas fa-file-alt text-6xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Document Preview</h3>
+                    <p class="text-gray-600 mb-6 max-w-md">
+                        This document type ({{ file_url|slice:"-4:" }}) cannot be previewed directly in the browser. 
+                        Please download the file to view its contents.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <a href="{% url 'lms:download_resource' resource_id=resource.id %}" 
+                           class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                            <i class="fas fa-download mr-2"></i> Download File
+                        </a>
+                        <a href="#" 
+                           onclick="window.open('https://view.officeapps.live.com/op/view.aspx?src={{ file_url|urlencode }}', '_blank'); return false;"
+                           class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                            <i class="fas fa-external-link-alt mr-2"></i> View in Office
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            {% else %}
+            <!-- Other file types -->
+            <div class="w-full h-96 flex flex-col items-center justify-center text-center p-8">
+                <i class="fas fa-file text-8xl text-gray-400 mb-6"></i>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">File Preview Not Available</h3>
+                <p class="text-gray-600 mb-6 max-w-md">
+                    This file type cannot be previewed directly in the browser. 
+                    Please download the file to view its contents.
+                </p>
+                <a href="{% url 'lms:download_resource' resource_id=resource.id %}" 
+                   class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-download mr-2"></i> Download File
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Resource Information -->
+        <div class="p-4 sm:p-6 border-t border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Resource Details</h3>
+                    <dl class="space-y-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <dt class="font-medium text-gray-700 w-full sm:w-24 mb-1 sm:mb-0">Subject:</dt>
+                            <dd class="text-gray-900">{{ resource.subject.name }}</dd>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <dt class="font-medium text-gray-700 w-full sm:w-24 mb-1 sm:mb-0">Type:</dt>
+                            <dd class="text-gray-900">{{ resource.resource_type.name }}</dd>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <dt class="font-medium text-gray-700 w-full sm:w-24 mb-1 sm:mb-0">Uploaded:</dt>
+                            <dd class="text-gray-900">{{ resource.upload_date|date:"M d, Y" }}</dd>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <dt class="font-medium text-gray-700 w-full sm:w-24 mb-1 sm:mb-0">Size:</dt>
+                            <dd class="text-gray-900">
+                                {% if resource.file_size >= 1048576 %}
+                                    {{ resource.file_size|divisibleby:1048576|floatformat:2 }} MB
+                                {% elif resource.file_size >= 1024 %}
+                                    {{ resource.file_size|divisibleby:1024|floatformat:2 }} KB
+                                {% else %}
+                                    {{ resource.file_size }} bytes
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Statistics</h3>
+                    <dl class="space-y-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <dt class="font-medium text-gray-700 w-full sm:w-24 mb-1 sm:mb-0">Views:</dt>
+                            <dd class="text-gray-900">{{ resource.view_count }}</dd>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <dt class="font-medium text-gray-700 w-full sm:w-24 mb-1 sm:mb-0">Downloads:</dt>
+                            <dd class="text-gray-900">{{ resource.download_count }}</dd>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <dt class="font-medium text-gray-700 w-full sm:w-24 mb-1 sm:mb-0">Access:</dt>
+                            <dd class="text-gray-900">
+                                {% if resource.is_premium %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-lock mr-1"></i> Premium
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-lock-open mr-1"></i> Free
+                                    </span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+            
+            {% if resource.description %}
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Description</h3>
+                <div class="prose prose-sm max-w-none">
+                    <p class="text-gray-700 leading-relaxed">{{ resource.description }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+// Professional Resource Viewer with dynamic sizing
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle different viewer types
+    const viewerType = '{{ viewer_type }}';
+    
+    if (viewerType === 'pdf') {
+        initializePdfViewer();
+    } else if (viewerType === 'video') {
+        initializeVideoPlayer();
+    } else if (viewerType === 'image') {
+        initializeImageViewer();
+    } else if (viewerType === 'audio') {
+        initializeAudioPlayer();
+    }
+});
+
+// PDF Viewer Functionality
+function initializePdfViewer() {
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
+    const currentPageEl = document.getElementById('current-page');
+    const totalPagesEl = document.getElementById('total-pages');
+    const zoomLevelSelect = document.getElementById('zoom-level');
+    const pdfLoading = document.getElementById('pdf-loading');
+    const pdfError = document.getElementById('pdf-error');
+    const pdfPagesContainer = document.getElementById('pdf-pages');
+    
+    let pdfDoc = null;
+    let currentPage = 1;
+    let totalPages = 1;
+    let scale = 1.0;
+    
+    // Show loading indicator
+    pdfLoading.classList.remove('hidden');
+    
+    // Load PDF.js library
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+    script.onload = function() {
+        // Initialize PDF.js
+        window.pdfjsLib = window['pdfjs-dist/build/pdf'];
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        // Load the PDF
+        const loadingTask = pdfjsLib.getDocument('{{ file_url }}');
+        loadingTask.promise.then(function(pdf) {
+            pdfDoc = pdf;
+            totalPages = pdf.numPages;
+            totalPagesEl.textContent = totalPages;
+            
+            // Hide loading, show content
+            pdfLoading.classList.add('hidden');
+            
+            // Render the first page
+            renderPage(currentPage);
+            
+        }).catch(function(error) {
+            console.error('Error loading PDF:', error);
+            pdfLoading.classList.add('hidden');
+            pdfError.classList.remove('hidden');
+        });
+    };
+    
+    document.head.appendChild(script);
+    
+    // Calculate optimal scale based on container size and page dimensions
+    function getOptimalScale() {
+        const containerWidth = pdfPagesContainer.clientWidth;
+        const pageWidth = 595.28; // A4 width in PDF points
+        
+        // Default scale
+        let scale = 1.0;
+        
+        // Get selected zoom level
+        const selectedZoom = zoomLevelSelect.value;
+        
+        if (selectedZoom === 'page-fit') {
+            // Fit entire page to container width with margins
+            scale = (containerWidth * 0.9) / pageWidth;
+        } else if (selectedZoom === 'page-width') {
+            // Fit page width to container width
+            scale = (containerWidth * 0.95) / pageWidth;
+        } else if (selectedZoom !== '100%') {
+            // Use percentage zoom
+            scale = parseFloat(selectedZoom) / 100;
+        }
+        
+        // Ensure minimum scale for readability
+        return Math.max(scale, 0.5);
+    }
+    
+    // Render a specific page
+    function renderPage(num) {
+        // Disable navigation during rendering
+        prevPageBtn.disabled = true;
+        nextPageBtn.disabled = true;
+        
+        // Update current page display
+        currentPageEl.textContent = num;
+        
+        // Get the page
+        pdfDoc.getPage(num).then(function(page) {
+            // Clear previous content
+            pdfPagesContainer.innerHTML = '';
+            
+            // Calculate scale
+            scale = getOptimalScale();
+            const viewport = page.getViewport({ scale: scale });
+            
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            // Style the canvas
+            canvas.style.maxWidth = '100%';
+            canvas.style.height = 'auto';
+            canvas.style.display = 'block';
+            canvas.style.margin = '0 auto 20px';
+            canvas.style.borderRadius = '8px';
+            canvas.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
+            
+            // Add page number indicator
+            const pageIndicator = document.createElement('div');
+            pageIndicator.className = 'text-center text-sm text-gray-500 mb-4';
+            pageIndicator.textContent = `Page ${num} of ${totalPages}`;
+            pdfPagesContainer.appendChild(pageIndicator);
+            
+            // Append canvas
+            pdfPagesContainer.appendChild(canvas);
+            
+            // Render the page
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            
+            page.render(renderContext).promise.then(function() {
+                // Re-enable navigation
+                prevPageBtn.disabled = (num <= 1);
+                nextPageBtn.disabled = (num >= totalPages);
+            });
+        });
+    }
+    
+    // Navigation event listeners
+    prevPageBtn.addEventListener('click', function() {
+        if (currentPage > 1) {
+            currentPage--;
+            renderPage(currentPage);
+        }
+    });
+    
+    nextPageBtn.addEventListener('click', function() {
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderPage(currentPage);
+        }
+    });
+    
+    // Zoom functionality
+    zoomLevelSelect.addEventListener('change', function() {
+        if (pdfDoc) {
+            renderPage(currentPage);
+        }
+    });
+    
+    // Handle window resize for responsive viewing
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            if (pdfDoc) {
+                renderPage(currentPage);
+            }
+        }, 250);
+    });
+}
+
+// Video Player Functionality
+function initializeVideoPlayer() {
+    const videoPlayer = document.getElementById('video-player');
+    
+    // Add responsive behavior
+    function adjustVideoSize() {
+        const container = videoPlayer.parentElement;
+        const maxHeight = window.innerHeight * 0.8;
+        
+        videoPlayer.style.maxHeight = `${maxHeight}px`;
+    }
+    
+    // Initial adjustment
+    adjustVideoSize();
+    
+    // Adjust on window resize
+    window.addEventListener('resize', adjustVideoSize);
+    
+    // Add keyboard controls
+    videoPlayer.addEventListener('keydown', function(e) {
+        switch(e.key) {
+            case ' ':
+                e.preventDefault();
+                if (videoPlayer.paused) {
+                    videoPlayer.play();
+                } else {
+                    videoPlayer.pause();
+                }
+                break;
+            case 'ArrowLeft':
+                videoPlayer.currentTime = Math.max(0, videoPlayer.currentTime - 10);
+                break;
+            case 'ArrowRight':
+                videoPlayer.currentTime = Math.min(videoPlayer.duration, videoPlayer.currentTime + 10);
+                break;
+        }
+    });
+}
+
+// Image Viewer Functionality
+function initializeImageViewer() {
+    const imageView = document.getElementById('image-viewer');
+    
+    // Add zoom functionality
+    imageView.addEventListener('click', function() {
+        // Create fullscreen overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4';
+        
+        const fullscreenImg = document.createElement('img');
+        fullscreenImg.src = this.src;
+        fullscreenImg.alt = this.alt;
+        fullscreenImg.className = 'max-w-full max-h-full object-contain cursor-zoom-out';
+        
+        // Close on click
+        fullscreenImg.addEventListener('click', function() {
+            document.body.removeChild(overlay);
+        });
+        
+        overlay.appendChild(fullscreenImg);
+        document.body.appendChild(overlay);
+    });
+}
+
+// Audio Player Functionality
+function initializeAudioPlayer() {
+    const audioPlayer = document.getElementById('audio-player');
+    
+    // Add responsive behavior
+    function adjustAudioSize() {
+        const container = audioPlayer.parentElement;
+        const maxWidth = Math.min(600, container.clientWidth);
+        
+        audioPlayer.style.width = '100%';
+    }
+    
+    // Initial adjustment
+    adjustAudioSize();
+    
+    // Adjust on window resize
+    window.addEventListener('resize', adjustAudioSize);
+}
+</script>
+
+<style>
+/* Custom styles for the viewer */
+.pdf-container {
+    min-height: 500px;
+}
+
+.video-container {
+    min-height: 500px;
+}
+
+.image-container {
+    min-height: 500px;
+}
+
+.audio-container {
+    min-height: 500px;
+}
+
+.document-container {
+    min-height: 500px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .pdf-container, .video-container, .image-container, .audio-container, .document-container {
+        min-height: 400px;
+    }
+    
+    #viewer-container {
+        overflow: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .pdf-container, .video-container, .image-container, .audio-container, .document-container {
+        min-height: 300px;
+    }
+    
+    .flex.flex-col > .flex {
+        flex-direction: column;
+        width: 100%;
+    }
+}
+
+/* Custom scrollbar for PDF container */
+.pdf-container::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.pdf-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.pdf-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.pdf-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+{% endblock %}

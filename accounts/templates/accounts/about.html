@@ -1,0 +1,70 @@
+<!-- accounts/templates/accounts/about.html -->
+{% extends 'accounts/base.html' %}
+
+{% block title %}About Us{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-12 text-white">
+            <h1 class="text-3xl font-bold text-center">About {{ site_settings.site_name|default:"Our Platform" }}</h1>
+        </div>
+        
+        <div class="p-8">
+            <div class="prose max-w-none">
+                <p class="text-lg text-gray-700 mb-6">
+                    Welcome to {{ site_settings.site_name|default:"our platform" }}, your comprehensive solution for educational resources. 
+                    We are dedicated to providing high-quality learning materials for students, teachers, and educators across all levels of education.
+                </p>
+                
+                <h2 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Our Mission</h2>
+                <p class="text-gray-700 mb-6">
+                    Our mission is to democratize access to quality educational resources by creating a centralized platform where users can 
+                    easily find, share, and utilize learning materials. We believe that education should be accessible to everyone, regardless 
+                    of their location or economic status.
+                </p>
+                
+                <h2 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Our Vision</h2>
+                <p class="text-gray-700 mb-6">
+                    We envision a world where every learner has access to the resources they need to succeed. By leveraging technology and 
+                    community collaboration, we aim to create a global network of educational content that empowers students and supports 
+                    educators in their teaching journey.
+                </p>
+                
+                <h2 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">What We Offer</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div class="bg-blue-50 p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-blue-800 mb-3">Comprehensive Resources</h3>
+                        <p class="text-blue-700">Access a vast collection of educational materials covering all subjects and grade levels.</p>
+                    </div>
+                    <div class="bg-green-50 p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-green-800 mb-3">User-Friendly Interface</h3>
+                        <p class="text-green-700">Our intuitive platform makes it easy to find and organize resources.</p>
+                    </div>
+                    <div class="bg-purple-50 p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-purple-800 mb-3">Community Collaboration</h3>
+                        <p class="text-purple-700">Connect with other educators and share best practices and resources.</p>
+                    </div>
+                    <div class="bg-orange-50 p-6 rounded-lg">
+                        <h3 class="text-xl font-semibold text-orange-800 mb-3">Regular Updates</h3>
+                        <p class="text-orange-700">Our content is continuously updated to reflect the latest curriculum standards.</p>
+                    </div>
+                </div>
+                
+                <h2 class="text-2xl font-semibold text-gray-800 mt-12 mb-4">Meet Our Team</h2>
+                <p class="text-gray-700 mb-6">
+                    Our team consists of experienced educators, curriculum specialists, and technology experts who are passionate about 
+                    improving education. We work tirelessly to ensure that our platform meets the needs of both students and teachers.
+                </p>
+                
+                <h2 class="text-2xl font-semibold text-gray-800 mt-8 mb-4">Join Us</h2>
+                <p class="text-gray-700 mb-6">
+                    Whether you're a student looking for study materials, a teacher seeking resources for your classroom, or an educational 
+                    content creator wanting to share your work, we invite you to join our community. Together, we can make quality education 
+                    accessible to all.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

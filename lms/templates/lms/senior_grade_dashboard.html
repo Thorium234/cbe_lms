@@ -1,0 +1,41 @@
+{% extends 'lms/base.html' %}
+{% block title %}{{ education_level.name }} Grades{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Debug Output -->
+    <div class="bg-yellow-100 p-4 mb-4">
+        <p>Education Level: {{ education_level.name|default:"None" }} (ID: {{ education_level.id|default:"None" }})</p>
+        <p>Grades Count: {{ grades.count }}</p>
+        <p>Grades: {% for g in grades %}{{ g.name }} (ID: {{ g.id }}), {% endfor %}</p>
+    </div>
+
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">{{ education_level.name }} Grades</h1>
+        <p class="text-gray-600">Choose a grade to view pathways</p>
+    </div>
+
+    <!-- Grades Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {% for grade in grades %}
+        <a href="{% url 'lms:grade_pathways_dashboard' grade_id=grade.id %}" class="block">
+            <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition duration-300">
+                <h2 class="text-xl font-semibold text-gray-800">{{ grade.name }}</h2>
+                <p class="text-gray-600 mb-4">Pathways: {{ grade.pathway_set.count }}</p>
+                <div class="text-blue-600 hover:text-blue-800">
+                    View Pathways
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    {% if not grades %}
+    <div class="text-center py-12">
+        <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">No Grades Available</h3>
+        <p class="text-gray-600">There are no grades assigned to this education level yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

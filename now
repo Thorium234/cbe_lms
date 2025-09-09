@@ -1,0 +1,959 @@
+
+
+### 1. **`lms/views.py`** - Main view functions
+@login_required
+def upload_resource(request):
+    """Handle resource upload with AJAX support"""
+    if request.method == 'POST':
+        try:
+            # Extract form data
+            title = request.POST.get('title', '').strip()
+            grade_id = request.POST.get('grade_id')
+            subject_id = request.POST.get('subject_id')
+            resource_type_id = request.POST.get('resource_type')
+            allow_download = request.POST.get('allow_download') == 'true'
+            is_premium = request.POST.get('is_premium') == 'true'
+            description = request.POST.get('description', '').strip()
+            
+            # Validate required fields
+            if not title:
+                return JsonResponse({'success': False, 'error': 'Title is required.'})
+            if not grade_id:
+                return JsonResponse({'success': False, 'error': 'Grade is required.'})
+            if not subject_id:
+                return JsonResponse({'success': False, 'error': 'Subject is required.'})
+            if not resource_type_id:
+                return JsonResponse({'success': False, 'error': 'Resource type is required.'})
+            if 'file' not in request.FILES:
+                return JsonResponse({'success': False, 'error': 'File is required.'})
+            
+            # Get related objects
+            try:
+                grade = Grade.objects.get(id=grade_id)
+                subject = Subject.objects.get(id=subject_id)
+                resource_type = ResourceType.objects.get(id=resource_type_id)
+            except (Grade.DoesNotExist, Subject.DoesNotExist, ResourceType.DoesNotExist) as e:
+                return JsonResponse({'success': False, 'error': f'Related object not found: {str(e)}'})
+            
+            # Handle file
+            uploaded_file = request.FILES['file']
+            
+            # Validate file size
+            max_size = getattr(settings, 'MAX_UPLOAD_SIZE', 314572800)  # 300MB default
+            if uploaded_file.size > max_size:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'File too large. Maximum size: {max_size / (1024*1024):.0f}MB'
+                })
+            
+            # Create resource
+            resource = Resource.objects.create(
+                title=title,
+                subject=subject,
+                resource_type=resource_type,
+                uploaded_by=request.user,
+                description=description,
+                allow_download=allow_download,
+                is_premium=is_premium,
+                file_size=uploaded_file.size
+            )
+            
+            # Save the file
+            resource.file.save(uploaded_file.name, uploaded_file, save=True)
+            logger.info(f"Resource {resource.id}: {resource.title} saved successfully")
+            
+            return JsonResponse({
+                'success': True,
+                'resource_id': resource.id,
+                'redirect_url': f"/grade/{grade_id}/subject/{subject_id}/"
+            })
+            
+        except Exception as e:
+            logger.error(f"Upload error: {str(e)}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    # GET request - show upload form
+    education_levels = EducationLevel.objects.all().order_by('order')
+    resource_types = ResourceType.objects.all()
+    return render(request, 'lms/upload_resource.html', {
+        'education_levels': education_levels,
+        'resource_types': resource_types,
+        'max_upload_size_mb': getattr(settings, 'MAX_UPLOAD_SIZE', 314572800) / (1024 * 1024),
+    })
+
+### 2. **`lms/urls.py`** - URL routing
+# Upload page
+    path('upload/', views.upload_resource, name='upload_resource'),
+
+### 3. **`lms/templates/lms/upload_resource.html`** - Upload form template
+-
+<!-- lms/templates/lms/upload_resource.html -->
+{% extends 'lms/base.html' %}
+{% load static %}
+{% block content %}
+<div class="max-w-4xl mx-auto px-6 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Upload Resource</h1>
+            <p class="text-gray-600 mt-2">
+                {% if grade %}Uploading to: <span class="font-semibold">{{ grade.name }}</span>{% endif %}
+                {% if subject %} | Subject: <span class="font-semibold">{{ subject.name }}</span>{% endif %}
+            </p>
+        </div>
+        <a href="{% url 'lms:home' %}" class="text-blue-600 hover:text-blue-800 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Back to Home
+        </a>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="p-6 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800">Resource Details</h2>
+            <p class="text-gray-600 text-sm">Fill in the details and upload your file</p>
+        </div>
+        
+        <form id="upload-form" method="post" enctype="multipart/form-data" class="p-6">
+            {% csrf_token %}
+            
+            <!-- Hidden fields for grade and subject -->
+            {% if grade %}
+                <input type="hidden" name="grade_id" value="{{ grade.id }}" id="grade-id">
+            {% endif %}
+            {% if subject %}
+                <input type="hidden" name="subject_id" value="{{ subject.id }}" id="subject-id">
+            {% endif %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Title -->
+                <div class="md:col-span-2">
+                    <label for="id_title" class="block text-sm font-medium text-gray-700 mb-2">
+                        Title <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="title" id="id_title" required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                           placeholder="Enter a descriptive title for your resource">
+                    <p class="mt-1 text-sm text-gray-500">A clear title helps users find your resource</p>
+                </div>
+                
+                <!-- Resource Type -->
+                <div>
+                    <label for="id_resource_type" class="block text-sm font-medium text-gray-700 mb-2">
+                        Resource Type <span class="text-red-500">*</span>
+                    </label>
+                    <select name="resource_type" id="id_resource_type" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
+                        <option value="">Select Resource Type</option>
+                        {% for rt in resource_types %}
+                        <option value="{{ rt.id }}">{{ rt.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- File Size Info -->
+                <div class="flex items-end">
+                    <div class="text-sm text-gray-500">
+                        Max file size: <span class="font-semibold">{{ max_upload_size_mb|floatformat:0 }}MB</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Description -->
+            <div class="mt-6">
+                <label for="id_description" class="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                </label>
+                <textarea name="description" id="id_description" rows="4"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                          placeholder="Describe the content, learning objectives, and any other relevant information about this resource"></textarea>
+            </div>
+            
+            <!-- File Upload Area -->
+            <div class="mt-8">
+                <label class="block text-sm font-medium text-gray-700 mb-4">
+                    Upload File <span class="text-red-500">*</span>
+                </label>
+                
+                <!-- Drag and Drop Area -->
+                <div id="drop-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors duration-200 cursor-pointer relative overflow-hidden">
+                    <!-- Loading overlay -->
+                    <div id="loading-overlay" class="absolute inset-0 bg-blue-50 bg-opacity-80 flex flex-col items-center justify-center hidden z-10">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                        <p class="text-blue-700 font-medium">Uploading...</p>
+                        <div class="w-64 bg-gray-200 rounded-full h-2.5 mt-4">
+                            <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p id="progress-text" class="text-blue-700 text-sm mt-2">0%</p>
+                    </div>
+                    
+                    <div id="upload-content" class="relative z-0">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                        <p class="text-lg font-medium text-gray-700 mb-2">Drag & drop your file here</p>
+                        <p class="text-gray-500 mb-4">or</p>
+                        <div class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 cursor-pointer">
+                            <i class="fas fa-folder-open mr-2"></i>
+                            <span>Browse Files</span>
+                        </div>
+                        <p class="mt-4 text-sm text-gray-500">
+                            Supported formats: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, JPG, PNG, MP4, MP3
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- File input (hidden) -->
+                <input type="file" name="file" id="file-input" class="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.mp4,.mp3,.txt" required>
+                
+                <!-- Selected file preview -->
+                <div id="file-preview" class="mt-4 hidden">
+                    <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                        <i class="fas fa-file text-3xl text-blue-600 mr-4"></i>
+                        <div class="flex-1">
+                            <p id="file-name" class="font-medium text-gray-800"></p>
+                            <p id="file-size" class="text-sm text-gray-500"></p>
+                        </div>
+                        <button type="button" id="remove-file" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-times-circle text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Options -->
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Allow Download -->
+                <div class="flex items-center">
+                    <input type="checkbox" name="allow_download" id="id_allow_download" value="true" checked
+                           class="h-5 w-5 text-blue-600 rounded focus:ring-blue-500">
+                    <label for="id_allow_download" class="ml-3 block text-sm font-medium text-gray-700">
+                        Allow users to download this resource
+                    </label>
+                </div>
+                
+                <!-- Premium Content -->
+                <div class="flex items-center">
+                    <input type="checkbox" name="is_premium" id="id_is_premium" value="true"
+                           class="h-5 w-5 text-blue-600 rounded focus:ring-blue-500">
+                    <label for="id_is_premium" class="ml-3 block text-sm font-medium text-gray-700">
+                        Mark as premium content (requires subscription)
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <div class="mt-8 flex justify-end">
+                <button type="submit" id="submit-btn" 
+                        class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition-all duration-200 flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-upload mr-2"></i>
+                    <span>Upload Resource</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Upload Resource Script
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('upload-form');
+    const fileInput = document.getElementById('file-input');
+    const dropArea = document.getElementById('drop-area');
+    const filePreview = document.getElementById('file-preview');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const removeFile = document.getElementById('remove-file');
+    const submitBtn = document.getElementById('submit-btn');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const uploadContent = document.getElementById('upload-content');
+    
+    // Show notification function
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        document.querySelectorAll('.notification').forEach(el => el.remove());
+        
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 max-w-md ${
+            type === 'success' ? 'bg-green-500 text-white' : 
+            type === 'error' ? 'bg-red-500 text-white' : 
+            'bg-blue-500 text-white'
+        }`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+    
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Handle file selection
+    function handleFileSelect(file) {
+        // Validate file size
+        const maxSize = {{ max_upload_size_mb }} * 1024 * 1024;
+        if (file.size > maxSize) {
+            showNotification(`File too large. Maximum size: {{ max_upload_size_mb }}MB`, 'error');
+            return false;
+        }
+        
+        // Show file preview
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        filePreview.classList.remove('hidden');
+        
+        return true;
+    }
+    
+    // Prevent default drag behaviors
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    // Add event listeners for drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    // Highlight drop area when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => {
+            dropArea.classList.add('border-blue-400', 'bg-blue-50');
+        }, false);
+    });
+    
+    // Remove highlight when item is dragged away
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => {
+            dropArea.classList.remove('border-blue-400', 'bg-blue-50');
+        }, false);
+    });
+    
+    // Handle dropped files
+    dropArea.addEventListener('drop', (e) => {
+        preventDefaults(e);
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            // Set the files to the hidden file input
+            fileInput.files = dt.files;
+            
+            // Trigger the file input change event
+            const event = new Event('change', { bubbles: true });
+            fileInput.dispatchEvent(event);
+        }
+    }, false);
+    
+    // Click on drop area to trigger file input
+    dropArea.addEventListener('click', (e) => {
+        // Prevent the click from triggering upload if we're in the loading state
+        if (loadingOverlay.classList.contains('hidden')) {
+            fileInput.click();
+        }
+    });
+    
+    // Handle file input change
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            if (handleFileSelect(this.files[0])) {
+                showNotification('File selected successfully', 'success');
+            }
+        }
+    });
+    
+    // Remove file
+    removeFile.addEventListener('click', function() {
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+        showNotification('File removed', 'info');
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate form
+        const title = document.getElementById('id_title').value.trim();
+        const resourceType = document.getElementById('id_resource_type').value;
+        const file = fileInput.files[0];
+        
+        if (!title) {
+            showNotification('Please enter a title', 'error');
+            return;
+        }
+        
+        if (!resourceType) {
+            showNotification('Please select a resource type', 'error');
+            return;
+        }
+        
+        if (!file) {
+            showNotification('Please select a file to upload', 'error');
+            return;
+        }
+        
+        // Show loading state
+        loadingOverlay.classList.remove('hidden');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Uploading...</span>';
+        
+        // Create FormData
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('resource_type', resourceType);
+        
+        // Add grade and subject if available
+        const gradeId = document.getElementById('grade-id');
+        const subjectId = document.getElementById('subject-id');
+        if (gradeId) formData.append('grade_id', gradeId.value);
+        if (subjectId) formData.append('subject_id', subjectId.value);
+        
+        // Add other fields
+        const description = document.getElementById('id_description').value;
+        if (description) formData.append('description', description);
+        
+        const allowDownload = document.getElementById('id_allow_download').checked;
+        formData.append('allow_download', allowDownload);
+        
+        const isPremium = document.getElementById('id_is_premium').checked;
+        formData.append('is_premium', isPremium);
+        
+        // Add file
+        formData.append('file', file);
+        
+        // Add CSRF token
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        // Submit via AJAX
+        const xhr = new XMLHttpRequest();
+        
+        // Progress tracking
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                progressBar.style.width = percentComplete + '%';
+                progressText.textContent = Math.round(percentComplete) + '%';
+            }
+        });
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        showNotification('Resource uploaded successfully!', 'success');
+                        
+                        // Redirect to subject dashboard after 1 second
+                        setTimeout(() => {
+                            try {
+                                const gradeId = document.getElementById('grade-id').value;
+                                const subjectId = document.getElementById('subject-id').value;
+                                window.location.href = `/grade/${gradeId}/subject/${subjectId}/`;
+                            } catch (error) {
+                                window.location.href = `{% url 'lms:home' %}`;
+                            }
+                        }, 1000);
+                    } else {
+                        // Hide loading state
+                        loadingOverlay.classList.add('hidden');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-upload mr-2"></i><span>Upload Resource</span>';
+                        
+                        // Show error
+                        let errorMessage = 'Upload failed';
+                        if (response.error) {
+                            errorMessage = response.error;
+                        }
+                        showNotification(errorMessage, 'error');
+                    }
+                } catch (parseError) {
+                    // Hide loading state
+                    loadingOverlay.classList.add('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-upload mr-2"></i><span>Upload Resource</span>';
+                    
+                    showNotification('Invalid response from server. Please try again.', 'error');
+                }
+            } else {
+                // Hide loading state
+                loadingOverlay.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-upload mr-2"></i><span>Upload Resource</span>';
+                
+                showNotification('Upload failed. Please try again.', 'error');
+            }
+        });
+        
+        xhr.addEventListener('error', function() {
+            // Hide loading state
+            loadingOverlay.classList.add('hidden');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-upload mr-2"></i><span>Upload Resource</span>';
+            
+            showNotification('Network error. Please check your connection.', 'error');
+        });
+        
+        // Send request
+        xhr.open('POST', window.location.pathname);
+        xhr.send(formData);
+    });
+});
+</script>
+{% endblock %}
+
+### 4. **`lms/templates/lms/grade_dashboard.html`** - Grade dashboard
+<!-- lms/templates/lms/grade_dashboard.html -->
+{% extends 'lms/base.html' %}
+{% load static %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">{{ grade.name }} Dashboard</h1>
+        <a href="{% url 'lms:home' %}" class="text-blue-600 hover:text-blue-800 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Back to Home
+        </a>
+    </div>
+    
+    <!-- Grade Information -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <div class="flex items-center mb-4">
+            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mr-4">
+                <i class="fas fa-graduation-cap text-white text-xl"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">{{ grade.name }}</h2>
+                <p class="text-gray-600">{{ grade.education_level.name }}</p>
+            </div>
+        </div>
+        <p class="text-gray-700">{{ grade.description }}</p>
+    </div>
+    
+    <!-- Subject Categories -->
+    {% if categories %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for category_name, subjects in categories.items %}
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800">{{ category_name }}</h3>
+                    </div>
+                    <div class="p-4">
+                        <div class="space-y-3">
+                            {% for subject in subjects %}
+                                <a href="{% url 'lms:subject_dashboard' grade_id=grade.id subject_id=subject.id %}" 
+                                   class="block p-3 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-sm transition-all duration-200">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-book-open text-blue-600 mr-3"></i>
+                                            <span class="font-medium text-gray-800">{{ subject.name }}</span>
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            {{ subject.active_resources_count }} resources
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">{{ subject.description|truncatewords:10 }}</p>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="bg-white rounded-lg shadow p-8 text-center">
+            <i class="fas fa-folder-open text-gray-400 text-6xl mb-4"></i>
+            <h3 class="text-xl font-medium text-gray-800 mb-2">No Subjects Available</h3>
+            <p class="text-gray-600">There are no subjects assigned to {{ grade.name }} yet.</p>
+            {% if user.is_staff %}
+                <p class="text-gray-500 mt-2">Please contact your administrator to add subjects.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    <!-- Pathways (for Senior Secondary) -->
+    {% if has_pathways and pathways %}
+        <div class="mt-8 bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800">Academic Pathways</h3>
+                <p class="text-sm text-gray-600">Choose your academic pathway for {{ grade.name }}</p>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for pathway in pathways %}
+                        <div class="border border-gray-200 rounded-lg p-6">
+                            <h4 class="text-lg font-semibold text-gray-800 mb-2">{{ pathway.name }}</h4>
+                            <p class="text-gray-600 mb-4">{{ pathway.description }}</p>
+                            <div class="space-y-2">
+                                {% for subject in pathway.subjects.all %}
+                                    <div class="flex items-center text-sm">
+                                        <i class="fas fa-check text-green-500 mr-2"></i>
+                                        <span>{{ subject.name }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+### 5. **`lms/forms.py`** - Form definition
+# lms/forms.py
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+
+# Import your models
+from .models import (
+    EducationLevel, Grade, SubjectCategory, Subject, 
+    ResourceType, Resource
+)
+
+class ResourceUploadForm(forms.ModelForm):
+    """Form for uploading resources"""
+    class Meta:
+        model = Resource
+        fields = [
+            'title', 'subject', 'resource_type', 'description', 
+            'allow_download', 'is_premium', 'file'
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'placeholder': 'Enter a descriptive title'
+            }),
+            'subject': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            }),
+            'resource_type': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'rows': 4,
+                'placeholder': 'Describe the content, learning objectives, and any other relevant information'
+            }),
+            'file': forms.FileInput(attrs={
+                'class': 'hidden',
+                'accept': '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.mp4,.mp3,.txt'
+            }),
+            'allow_download': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+            }),
+            'is_premium': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+            })
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make file field required
+        self.fields['file'].required = True
+
+class SubjectCategoryForm(forms.ModelForm):
+    """Form for creating/editing subject categories"""
+    class Meta:
+        model = SubjectCategory
+        fields = ['name', 'icon', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'placeholder': 'Category name (e.g., Languages, Mathematics)'
+            }),
+            'icon': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'placeholder': 'Font Awesome icon class (e.g., fas fa-language)'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'rows': 3,
+                'placeholder': 'Brief description of this category'
+            })
+        }
+
+class GradeForm(forms.ModelForm):
+    """Form for creating/editing grades"""
+    class Meta:
+        model = Grade
+        fields = ['name', 'education_level', 'order', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'placeholder': 'Grade name (e.g., Grade 1, PP1)'
+            }),
+            'education_level': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'min': '1'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'rows': 3,
+                'placeholder': 'Description of this grade level'
+            })
+        }
+
+class SubjectForm(forms.ModelForm):
+    """Form for creating/editing subjects"""
+    class Meta:
+        model = Subject
+        fields = ['name', 'category', 'grades', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'placeholder': 'Subject name (e.g., English, Mathematics)'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            }),
+            'grades': forms.SelectMultiple(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'rows': 3,
+                'placeholder': 'Brief description of this subject'
+            })
+        }
+
+class ResourceTypeForm(forms.ModelForm):
+    """Form for creating/editing resource types"""
+    class Meta:
+        model = ResourceType
+        fields = ['name', 'icon', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'placeholder': 'Resource type name (e.g., PDF, Video)'
+            }),
+            'icon': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'placeholder': 'Font Awesome icon class (e.g., fas fa-file-pdf)'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'rows': 3,
+                'placeholder': 'Description of this resource type'
+            })
+        }
+
+class EducationLevelForm(forms.ModelForm):
+    """Form for creating/editing education levels"""
+    class Meta:
+        model = EducationLevel
+        fields = ['name', 'order', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'placeholder': 'Education level name (e.g., Pre-Primary, Lower Primary)'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'min': '1'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'rows': 3,
+                'placeholder': 'Description of this education level'
+            })
+        }
+
+class CustomUserCreationForm(UserCreationForm):
+    """Custom user creation form with email field"""
+    email = forms.EmailField(
+        required=True,
+        help_text='Required. Enter a valid email address.'
+    )
+
+    class Meta:
+        model = User
+        fields = ("username", "email", "password1", "password2")
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"]
+        if commit:
+            user.save()
+        return user
+
+### 6. **`lms/templates/lms/base.html`** - Base template (if needed)
+<!-- lms/templates/lms/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CBC LMS{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    {% block css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo and Brand -->
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-graduation-cap text-white"></i>
+                    </div>
+                    <a href="{% url 'lms:home' %}" class="text-xl font-bold text-gray-800">{{ site_settings.site_name|default:"CBC LMS" }}</a>
+                </div>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <!-- Dashboard -->
+                    <a href="{% url 'lms:home' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                        <i class="fas fa-home mr-1"></i> Dashboard
+                    </a>
+                    
+                    <!-- Admin Dashboard -->
+                    {% if user.is_staff %}
+                    <a href="{% url 'lms:superuser_dashboard' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                        <i class="fas fa-cog mr-1"></i> Admin
+                    </a>
+                    {% endif %}
+                    
+                    <!-- Information Links -->
+                    <div class="flex space-x-6">
+                        <a href="{% url 'accounts:about' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                            <i class="fas fa-info-circle mr-1"></i> About
+                        </a>
+                        <a href="{% url 'accounts:contact' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                            <i class="fas fa-envelope mr-1"></i> Contact
+                        </a>
+                        <a href="{% url 'accounts:terms' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                            <i class="fas fa-file-contract mr-1"></i> Terms
+                        </a>
+                        <a href="{% url 'accounts:privacy' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 nav-link">
+                            <i class="fas fa-shield-alt mr-1"></i> Privacy
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- User Menu -->
+                <div class="flex items-center space-x-4">
+                    {% if user.is_authenticated %}
+                    <span class="text-sm text-gray-600">{{ user.username }}</span>
+                    <a href="{% url 'lms:logout' %}" class="text-sm text-gray-600 hover:text-red-600">Logout</a>
+                    {% else %}
+                    <a href="{% url 'lms:login' %}" class="text-sm text-gray-600 hover:text-blue-600">Login</a>
+                    <a href="{% url 'lms:signup' %}" class="text-sm text-gray-600 hover:text-blue-600">Sign Up</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        {% for message in messages %}
+        <div class="bg-{{ message.tags }}-100 border-l-4 border-{{ message.tags }}-500 text-{{ message.tags }}-700 p-4 rounded">
+            <p>{{ message }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">{{ site_settings.site_name|default:"CBC LMS" }}</h3>
+                    <p class="text-gray-600 text-sm">{{ site_settings.site_description|default:"Comprehensive educational resource platform for the CBC curriculum." }}</p>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-800 uppercase tracking-wider mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'lms:home' %}" class="text-gray-600 hover:text-blue-600 text-sm">Home</a></li>
+                        <li><a href="{% url 'accounts:about' %}" class="text-gray-600 hover:text-blue-600 text-sm">About Us</a></li>
+                        <li><a href="{% url 'accounts:contact' %}" class="text-gray-600 hover:text-blue-600 text-sm">Contact</a></li>
+                        <li><a href="{% url 'accounts:terms' %}" class="text-gray-600 hover:text-blue-600 text-sm">Terms of Service</a></li>
+                        <li><a href="{% url 'accounts:privacy' %}" class="text-gray-600 hover:text-blue-600 text-sm">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-800 uppercase tracking-wider mb-4">Connect With Us</h4>
+                    <div class="flex space-x-4 mb-4">
+                        {% if site_settings.facebook_url %}
+                        <a href="{{ site_settings.facebook_url }}" class="text-blue-600 hover:text-blue-800">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.whatsapp_url %}
+                        <a href="{{ site_settings.whatsapp_url }}" class="text-green-600 hover:text-green-800">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.twitter_url %}
+                        <a href="{{ site_settings.twitter_url }}" class="text-blue-400 hover:text-blue-600">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.instagram_url %}
+                        <a href="{{ site_settings.instagram_url }}" class="text-pink-600 hover:text-pink-800">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.linkedin_url %}
+                        <a href="{{ site_settings.linkedin_url }}" class="text-blue-700 hover:text-blue-900">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% if site_settings.contact_email %}
+                    <p class="text-gray-600 text-sm">Email: {{ site_settings.contact_email }}</p>
+                    {% endif %}
+                    {% if site_settings.phone_number %}
+                    <p class="text-gray-600 text-sm">Phone: {{ site_settings.phone_number }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-200 mt-6 pt-6 text-center">
+                <p class="text-gray-500 text-sm">
+                    &copy; {% now "Y" %} {{ site_settings.site_name|default:"CBC LMS" }}. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    {% block js %}
+    {% endblock %}
+</body>
+</html>

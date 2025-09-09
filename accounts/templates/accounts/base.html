@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Accounts{% endblock %} - {{ site_settings.site_name|default:"CBC LMS" }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <a href="{% url 'lms:grade_level_dashboard' %}" class="text-xl font-bold text-blue-600">
+                            {{ site_settings.site_name|default:"CBC LMS" }}
+                        </a>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="{% url 'lms:grade_level_dashboard' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Home
+                        </a>
+                        <a href="{% url 'accounts:about' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            About
+                        </a>
+                        <a href="{% url 'accounts:contact' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Contact
+                        </a>
+                        <a href="{% url 'accounts:terms' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Terms
+                        </a>
+                        <a href="{% url 'accounts:privacy' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Privacy
+                        </a>
+                    </div>
+                </div>
+                <div class="hidden sm:ml-6 sm:flex sm:items-center">
+                    {% if user.is_authenticated %}
+                        <div class="flex items-center">
+                            <div class="relative">
+                                <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                                    {{ user.username|first|upper }}
+                                </div>
+                            </div>
+                            <div class="relative ml-3">
+                                <div class="flex items-center">
+                                    <span class="ml-2 text-sm font-medium text-gray-700">{{ user.username }}</span>
+                                    <i class="fas fa-chevron-down text-gray-500 ml-1 text-xs"></i>
+                                </div>
+                                <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
+                                    <a href="{% url 'accounts:profile' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <i class="fas fa-user mr-2"></i> Your Profile
+                                    </a>
+                                    <a href="{% url 'accounts:edit_profile' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <i class="fas fa-cog mr-2"></i> Settings
+                                    </a>
+                                    <a href="{% url 'lms:upload_resource' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <i class="fas fa-upload mr-2"></i> Upload Resource
+                                    </a>
+                                    <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                                        <i class="fas fa-sign-out-alt mr-2"></i> Sign out
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}" class="ml-4 inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
+                            Login
+                        </a>
+                        <a href="{% url 'accounts:signup' %}" class="ml-4 inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            Sign up
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="sm:hidden bg-white border-b border-gray-200">
+        <div class="px-4 py-2">
+            <div class="flex justify-between items-center">
+                <select class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" onchange="location = this.value;">
+                    <option value="#">Menu</option>
+                    <option value="{% url 'lms:grade_level_dashboard' %}">Home</option>
+                    <option value="{% url 'accounts:about' %}">About</option>
+                    <option value="{% url 'accounts:contact' %}">Contact</option>
+                    <option value="{% url 'accounts:terms' %}">Terms</option>
+                    <option value="{% url 'accounts:privacy' %}">Privacy</option>
+                    {% if user.is_authenticated %}
+                        <option value="{% url 'accounts:profile' %}">Profile</option>
+                        <option value="{% url 'accounts:edit_profile' %}">Settings</option>
+                        <option value="{% url 'lms:upload_resource' %}">Upload Resource</option>
+                        <option value="{% url 'accounts:logout' %}">Logout</option>
+                    {% else %}
+                        <option value="{% url 'accounts:login' %}">Login</option>
+                        <option value="{% url 'accounts:signup' %}">Sign up</option>
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="container mx-auto px-4 py-8">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="mb-4 p-4 rounded-md
+                    {% if message.tags == 'error' %}bg-red-100 text-red-700 border border-red-200
+                    {% elif message.tags == 'success' %}bg-green-100 text-green-700 border border-green-200
+                    {% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-700 border border-yellow-200
+                    {% else %}bg-blue-100 text-blue-700 border border-blue-200
+                    {% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        <nav class="flex mb-6" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                <li class="inline-flex items-center">
+                    <a href="{% url 'lms:grade_level_dashboard' %}" class="inline-flex items-center text-sm text-gray-700 hover:text-blue-600">
+                        <i class="fas fa-home mr-2"></i>
+                        Home
+                    </a>
+                </li>
+                {% block breadcrumb %}
+                <li aria-current="page">
+                    <div class="flex items-center">
+                        <i class="fas fa-chevron-right text-gray-500 mx-2"></i>
+                        <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ block.super }}</span>
+                    </div>
+                </li>
+                {% endblock %}
+            </ol>
+        </nav>
+        {% block content %}{% endblock %}
+    </div>
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ site_settings.site_name|default:"CBC LMS" }}</h3>
+                    <p class="mt-2 text-gray-600">{{ site_settings.site_description|default:"Providing quality educational resources for all levels." }}</p>
+                    {% if site_settings.address %}
+                    <p class="mt-2 text-gray-600">{{ site_settings.address }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wider">Quick Links</h4>
+                    <ul class="mt-4 space-y-2">
+                        <li><a href="{% url 'lms:grade_level_dashboard' %}" class="text-gray-600 hover:text-gray-900">Home</a></li>
+                        <li><a href="{% url 'accounts:about' %}" class="text-gray-600 hover:text-gray-900">About</a></li>
+                        <li><a href="{% url 'accounts:contact' %}" class="text-gray-600 hover:text-gray-900">Contact</a></li>
+                        <li><a href="{% url 'accounts:terms' %}" class="text-gray-600 hover:text-gray-900">Terms</a></li>
+                        <li><a href="{% url 'accounts:privacy' %}" class="text-gray-600 hover:text-gray-900">Privacy</a></li>
+                        <li><a href="{% url 'accounts:profile' %}" class="text-gray-600 hover:text-gray-900">Profile</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wider">Contact Us</h4>
+                    <ul class="mt-4 space-y-2">
+                        {% if site_settings.contact_email %}
+                        <li class="flex items-center">
+                            <i class="fas fa-envelope text-gray-600 mr-2"></i>
+                            <a href="mailto:{{ site_settings.contact_email }}" class="text-gray-600 hover:text-gray-900">{{ site_settings.contact_email }}</a>
+                        </li>
+                        {% endif %}
+                        {% if site_settings.phone_number %}
+                        <li class="flex items-center">
+                            <i class="fas fa-phone text-gray-600 mr-2"></i>
+                            <span class="text-gray-600">{{ site_settings.phone_number }}</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    <div class="mt-4 flex space-x-4">
+                        {% if site_settings.facebook_url %}
+                        <a href="{{ site_settings.facebook_url }}" class="text-gray-600 hover:text-blue-600">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.whatsapp_url %}
+                        <a href="{{ site_settings.whatsapp_url }}" class="text-gray-600 hover:text-green-600">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.twitter_url %}
+                        <a href="{{ site_settings.twitter_url }}" class="text-gray-600 hover:text-blue-400">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.instagram_url %}
+                        <a href="{{ site_settings.instagram_url }}" class="text-gray-600 hover:text-pink-600">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        {% endif %}
+                        {% if site_settings.linkedin_url %}
+                        <a href="{{ site_settings.linkedin_url }}" class="text-gray-600 hover:text-blue-700">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 border-t border-gray-200 pt-8">
+                <p class="text-center text-gray-500 text-sm">
+                    &copy; {% now "Y" %} {{ site_settings.site_name|default:"CBC LMS" }}. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+    {% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const profileDropdown = document.querySelector('.group');
+            const dropdownMenu = document.querySelector('.group-hover\\:block');
+            if (profileDropdown && dropdownMenu) {
+                profileDropdown.addEventListener('mouseenter', function() {
+                    dropdownMenu.classList.remove('hidden');
+                });
+                profileDropdown.addEventListener('mouseleave', function() {
+                    dropdownMenu.classList.add('hidden');
+                });
+            }
+        });
+    </script>
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!-- accounts/templates/accounts/contact.html -->
+{% extends 'accounts/base.html' %}
+
+{% block title %}Contact Us{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gradient-to-r from-green-600 to-teal-600 px-6 py-12 text-white">
+            <h1 class="text-3xl font-bold text-center">Contact Us</h1>
+            <p class="text-center mt-2">We'd love to hear from you</p>
+        </div>
+        
+        <div class="p-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Get in Touch</h2>
+                    <p class="text-gray-700 mb-6">
+                        Have questions, suggestions, or feedback? We're here to help. Fill out the form below and we'll get back to you 
+                        as soon as possible.
+                    </p>
+                    
+                    <div class="space-y-4">
+                        {% if site_settings.contact_email %}
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-envelope text-green-600 mt-1"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-lg font-medium text-gray-900">Email</h3>
+                                <p class="text-gray-600">{{ site_settings.contact_email }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if site_settings.phone_number %}
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-phone text-green-600 mt-1"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-lg font-medium text-gray-900">Phone</h3>
+                                <p class="text-gray-600">{{ site_settings.phone_number }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if site_settings.address %}
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-map-marker-alt text-green-600 mt-1"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-lg font-medium text-gray-900">Address</h3>
+                                <p class="text-gray-600">{{ site_settings.address }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Follow Us</h3>
+                        <div class="flex space-x-4">
+                            {% if site_settings.facebook_url %}
+                            <a href="{{ site_settings.facebook_url }}" class="text-blue-600 hover:text-blue-800">
+                                <i class="fab fa-facebook-f text-2xl"></i>
+                            </a>
+                            {% endif %}
+                            {% if site_settings.whatsapp_url %}
+                            <a href="{{ site_settings.whatsapp_url }}" class="text-green-600 hover:text-green-800">
+                                <i class="fab fa-whatsapp text-2xl"></i>
+                            </a>
+                            {% endif %}
+                            {% if site_settings.twitter_url %}
+                            <a href="{{ site_settings.twitter_url }}" class="text-blue-400 hover:text-blue-600">
+                                <i class="fab fa-twitter text-2xl"></i>
+                            </a>
+                            {% endif %}
+                            {% if site_settings.instagram_url %}
+                            <a href="{{ site_settings.instagram_url }}" class="text-pink-600 hover:text-pink-800">
+                                <i class="fab fa-instagram text-2xl"></i>
+                            </a>
+                            {% endif %}
+                            {% if site_settings.linkedin_url %}
+                            <a href="{{ site_settings.linkedin_url }}" class="text-blue-700 hover:text-blue-900">
+                                <i class="fab fa-linkedin-in text-2xl"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <form class="bg-gray-50 p-6 rounded-lg">
+                        <div class="mb-4">
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input type="text" id="name" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="email" name="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                            <input type="text" id="subject" name="subject" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                            <textarea id="message" name="message" rows="5" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required></textarea>
+                        </div>
+                        
+                        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+
+{% extends 'lms/base.html' %}
+{% block title %}Error{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-8 text-center">
+    <h1 class="text-3xl font-bold text-red-600">Error</h1>
+    <p class="text-gray-600 mt-4">{{ message }}</p>
+    <a href="{% url 'lms:grade_level_dashboard' %}" class="mt-6 inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        Return to Home
+    </a>
+</div>
+{% endblock %}

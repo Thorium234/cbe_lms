@@ -1,0 +1,129 @@
+{% extends 'lms/base.html' %}
+{% block title %}
+    {% if education_level %}
+        {{ education_level.name }} Grades
+    {% else %}
+        {{ grade.name }} Dashboard
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-8">
+    {% if education_level %}
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">{{ education_level.name }}</h1>
+            <p class="text-gray-600">Grades Overview</p>
+        </div>
+        <!-- Grades Grid -->
+        {% if grades %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for grade in grades %}
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-800">{{ grade.name }}</h2>
+                <p class="text-gray-600 mb-4">{{ grade.description|default:"No description available" }}</p>
+                <a href="{% url 'lms:grade_dashboard' grade_id=grade.id %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    View Subjects
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">No Grades Available</h3>
+            <p class="text-gray-600">There are no grades assigned to this education level yet.</p>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">{{ grade.name }}</h1>
+            <p class="text-gray-600">{{ grade.education_level.name }}</p>
+        </div>
+
+        <!-- Subjects Grid -->
+        {% if categories %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for category_name, subjects in categories.items %}
+                {% for subject in subjects %}
+                <a href="{% url 'lms:subject_dashboard' grade_id=grade.id subject_id=subject.id %}" class="block">
+                    <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition duration-300">
+                        <div class="p-6">
+                            <div class="flex items-center mb-3">
+                                {% if category_name == 'Languages' %}
+                                    <i class="fas fa-language text-blue-600 text-3xl mr-3"></i>
+                                {% elif category_name == 'Mathematics' %}
+                                    <i class="fas fa-calculator text-green-600 text-3xl mr-3"></i>
+                                {% elif category_name == 'Science' %}
+                                    <i class="fas fa-flask text-purple-600 text-3xl mr-3"></i>
+                                {% elif category_name == 'Humanities' %}
+                                    <i class="fas fa-book text-yellow-600 text-3xl mr-3"></i>
+                                {% elif category_name == 'Technical' %}
+                                    <i class="fas fa-cogs text-indigo-600 text-3xl mr-3"></i>
+                                {% elif category_name == 'Arts' %}
+                                    <i class="fas fa-palette text-pink-600 text-3xl mr-3"></i>
+                                {% elif category_name == 'Religious Studies' %}
+                                    <i class="fas fa-pray text-red-600 text-3xl mr-3"></i>
+                                {% elif category_name == 'Physical Education' %}
+                                    <i class="fas fa-running text-orange-600 text-3xl mr-3"></i>
+                                {% elif category_name == 'Life Skills' %}
+                                    <i class="fas fa-hands-helping text-teal-600 text-3xl mr-3"></i>
+                                {% elif category_name == 'Home Science' %}
+                                    <i class="fas fa-home text-gray-600 text-3xl mr-3"></i>
+                                {% else %}
+                                    <i class="fas fa-book text-gray-600 text-3xl mr-3"></i>
+                                {% endif %}
+                                <h2 class="text-xl font-semibold">{{ subject.name }}</h2>
+                            </div>
+                            <p class="text-gray-600 mb-4">{{ category_name }}</p>
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-file-alt mr-1"></i>
+                                <span>{{ subject.active_resources_count }} resources</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- No subjects message -->
+        {% else %}
+        <div class="text-center py-12">
+            <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">No Subjects Available</h3>
+            <p class="text-gray-600">There are no subjects assigned to this grade yet.</p>
+        </div>
+        {% endif %}
+
+        <!-- Pathways for Senior Secondary -->
+        {% if has_pathways %}
+        <div class="mt-12">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Pathways</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {% for pathway in pathways %}
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">{{ pathway.name }}</h3>
+                    <div class="space-y-2">
+                        {% for subject in pathway.subjects.all %}
+                        <div class="flex items-center">
+                            <i class="fas fa-book text-blue-500 mr-2"></i>
+                            <span class="text-gray-700">{{ subject.name }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Grade dashboard loaded');
+});
+</script>
+{% endblock %}
